@@ -1,4 +1,4 @@
-# flutter_youtube_dl_downloader
+# flutter_youtube_downloader
 
 A Flutter Desktop App which download video from youtube and facebook, both public and private
 
