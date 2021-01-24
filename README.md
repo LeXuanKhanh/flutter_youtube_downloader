@@ -20,9 +20,12 @@ This is Flutter UI layer warped around [youtube-dl](https://github.com/ytdl-org/
 
 ## How to use:
 By default, the folder don't have additional `youtube-dl.exe`, in order for the app to work, you need to install youtube-dl.
+
 In Windows, just download the `exe` file from [here](https://yt-dl.org/latest/youtube-dl.exe) and place it at the same location of the App
 
 ## About download private video:
 To download private video, you need to get a youtube and facebook cookies files and place them at the same location of the App, you can read how can get that file in [here](https://github.com/ytdl-org/youtube-dl#how-do-i-pass-cookies-to-youtube-dl)
+
 The cookies file which use for downloading facebook video must name `facebook.txt`
+
 The cookies file which use for downloading youtube video must name `youtube.txt`
