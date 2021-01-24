@@ -14,9 +14,9 @@ This is Flutter UI layer warped around [youtube-dl](https://github.com/ytdl-org/
 - Visual Studio Community: 2019 16.8.4
 
 ## Tested:
-- Windows [x]
-- Mac OS [ ]
-- Linux [ ]
+- [x] Windows
+- [ ] Mac OS
+- [ ] Linux
 
 ## How to use:
 By default, the folder don't have additional `youtube-dl.exe`, in order for the app to work, you need to install youtube-dl.
