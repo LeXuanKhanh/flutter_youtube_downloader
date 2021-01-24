@@ -255,11 +255,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 maxLines: null,
               ),
               trailing: isLoading
-                  ? Center(
-                      child: Container(
-                        child: CircularProgressIndicator(),
-                      ),
-                    )
+                  ? CircularProgressIndicator()
                   : IconButton(icon: Icon(Icons.search), onPressed: null),
             ),
             Padding(
