@@ -16,11 +16,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Youtube-dl Downloader',
+      title: 'Flutter Youtube Downloader',
       theme: ThemeData(
         primarySwatch: Colors.red,
       ),
-      home: MyHomePage(title: 'Flutter Youtube-dl Downloader'),
+      home: MyHomePage(title: 'Flutter Youtube Downloader'),
     );
   }
 }
@@ -366,6 +366,10 @@ extension StringEx on String {
   String get crossPlatformCommand {
     if (Platform.isWindows) {
       return 'start /B powershell -windowstyle hidden -c "${this}"';
+    }
+
+    if (Platform.isMacOS) {
+      return this.substring(2);
     }
 
     return this;

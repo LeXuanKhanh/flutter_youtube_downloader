@@ -28,7 +28,7 @@ extension VideoTypeEx on VideoType {
     }
 
     if (link.contains('youtube')) {
-      return VideoType.facebook;
+      return VideoType.youtube;
     }
 
     return VideoType.other;
