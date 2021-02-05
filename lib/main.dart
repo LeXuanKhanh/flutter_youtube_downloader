@@ -3,9 +3,13 @@ import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_youtube_downloader/Extension/FutureEx.dart';
 import 'package:flutter_youtube_downloader/VideoInfo.dart';
 import 'package:process_run/shell.dart';
-import 'package:tuple/tuple.dart';
+import 'package:path_provider/path_provider.dart';
+
+import 'GlobalVariables.dart';
 
 void main() {
   runApp(MyApp());
@@ -41,12 +45,23 @@ class _MyHomePageState extends State<MyHomePage> {
   var isLoading = false;
   String currentDownloadVideoId;
   String version = '';
+  String videoLocation = '';
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    shell = Shell(stdout: controller.sink, verbose: false);
+    if (Platform.isMacOS) {
+      final env = Platform.environment;
+      final dir = env['HOME'] + '/Documents';
+      shell =
+          Shell(stdout: controller.sink, verbose: false, workingDirectory: dir);
+    }
+
+    if (Platform.isWindows) {
+      shell = Shell(stdout: controller.sink, verbose: false);
+    }
+
     controller.stream.listen((event) {
       //print(event);
       if (currentDownloadVideoId == null) {
@@ -79,6 +94,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     checkYoutubeDL();
+    getVideoLocation();
   }
 
   @override
@@ -112,7 +128,7 @@ class _MyHomePageState extends State<MyHomePage> {
           item.isLoading = true;
         });
         await shell.run(
-            '.\\youtube-dl --cookies ${item.type.cookieFile} -o \'video/%(title)s.%(ext)s\' \'${item.link}\''
+            '.\\youtube-dl --cookies ${item.type.cookieFile} -o $videoOutput \'${item.link}\''
                 .crossPlatformCommand);
       }
     } on ShellException catch (e) {
@@ -124,7 +140,17 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void showSnackBar(String text) {
-    final snackBar = SnackBar(content: Text(text));
+    final snackBar = SnackBar(
+        content: Wrap(
+          children: [
+            Text(text),
+            OutlinedButton(
+                child: Text('Copy Error'),
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: text));
+                })
+          ],
+        ));
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
@@ -139,29 +165,29 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final link = _inputController.text;
 
-    final videoInfo = await getVideoInfoFrom(link: link).toTuple();
+    final videoInfo = await getVideoInfoFrom(link: link).toResult();
 
     setState(() {
       isLoading = false;
     });
 
     // have error
-    if (videoInfo.item2 != null) {
-      var error = videoInfo.item2.toString();
-      if (videoInfo.item2 is ShellException) {
-        error = (videoInfo.item2 as ShellException).toErrorString;
+    if (videoInfo.error != null) {
+      var error = videoInfo.error.toString();
+      if (videoInfo.error is ShellException) {
+        error = (videoInfo.error as ShellException).toErrorString;
         log(error);
       } else {
-        log(videoInfo.item2.toString());
-        log(videoInfo.item3.toString());
+        log(videoInfo.error.toString());
+        log(videoInfo.stackTrace.toString());
       }
 
-      showSnackBar("Error on getting video infomation: \n $error");
+      showSnackBar("Error on getting video information: \n $error");
       return;
     }
 
     setState(() {
-      videoList.add(videoInfo.item1);
+      videoList.add(videoInfo.value);
     });
   }
 
@@ -177,25 +203,23 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     final result = await shell
         .run('.\\youtube-dl --version'.crossPlatformCommand)
-        .toTuple();
+        .toResult();
 
-    if (result.item2 != null) {
-      final error2 = result.item2.toString();
-      final title =
-          "Can't check the version of youtube-dl, did you have the youtube-dl.exe placed in the App location ?";
+    if (result.error != null) {
+      final error2 = result.error.toString();
+      final title = "Can't check the version of youtube-dl";
       setState(() {
         version = title;
       });
       showSnackBar(title + '\n' + error2);
-      final error = result.item2;
-      log(error.toString());
+      log(result.error.toString());
+      log(result.stackTrace.toString());
       return;
     }
 
-    if (result.item1.first.stdout.toString().isEmpty) {
-      final error = result.item1.first.stderr.toString();
-      final title =
-          "Can't check the version of youtube-dl, did you have the youtube-dl.exe placed in the App location?";
+    if (result.value.errText.isNotEmpty) {
+      final error = result.value.errText;
+      final title = "Can't check the version of youtube-dl";
       setState(() {
         version = title;
       });
@@ -205,7 +229,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     setState(() {
-      version = result.item1.first.stdout.split('\n').first.toString();
+      version = result.value.outText.split('\n').first.toString();
     });
   }
 
@@ -215,13 +239,13 @@ class _MyHomePageState extends State<MyHomePage> {
         '.\\youtube-dl --cookies ${type.cookieFile} --get-title --get-id --get-thumbnail --get-duration  \'$link\''
             .crossPlatformCommand);
 
-    if (result.first.stderr.toString().isNotEmpty) {
+    if (result.errText.toString().isNotEmpty) {
       final error =
-          ShellException('${result.first.stderr.toString()}', result.first);
+          ShellException('${result.errText.toString()}', result.first);
       throw error;
     }
 
-    final data = result.first?.stdout?.toString()?.split("\n");
+    final data = result.outText.toString()?.split("\n");
     final title = data[0] ?? "";
     final id = data[1] ?? "";
     final thumbnail = data[2] ?? "";
@@ -238,17 +262,99 @@ class _MyHomePageState extends State<MyHomePage> {
         id: id);
   }
 
+  void getVideoLocation() async {
+    setState(() {
+      videoLocation = 'getting location';
+    });
+
+    final newShell = Shell(verbose: false);
+    var result = await newShell.run('pwd'.crossPlatformCommand).toResult();
+
+    if (result.error != null) {
+      setState(() {
+        videoLocation = '''can't get video location''';
+      });
+      showSnackBar(videoLocation + '\n' + result.error.toString());
+      return;
+    }
+
+    if (result.value.errText.isNotEmpty) {
+      setState(() {
+        videoLocation = '''can't get video location''';
+      });
+      showSnackBar(videoLocation + '\n' + result.value.errText);
+      return;
+    }
+
+    // work around
+    // if ((Platform.isMacOS) && videoLocation == '/') {
+    if ((Platform.isMacOS)) {
+      final localPath = await documentsPath;
+      if (localPath.isEmpty) {
+        setState(() {
+          videoLocation = '''can't get video location''';
+        });
+        showSnackBar(
+            videoLocation + '\n' + 'can\'t find local desktop path on Mac OS');
+        return;
+      }
+
+      setState(() {
+        videoLocation = localPath + '/$VIDEO_FOLDER_NAME';
+      });
+
+      await newShell.run('mkdir -p $videoLocation').toResult(logError: true);
+      return;
+    }
+
+    setState(() {
+      videoLocation = result.value.outText + '/$VIDEO_FOLDER_NAME';
+    });
+  }
+
+  void openVideoLocation() async {
+    final newShell = Shell(verbose: false);
+    var result = await newShell
+        .run('open $videoLocation'.crossPlatformCommand)
+        .toResult();
+
+    if (result.error != null) {
+      showSnackBar(videoLocation + '\n' + result.error.toString());
+      return;
+    }
+
+    if (result.value.errText.isNotEmpty) {
+      showSnackBar(videoLocation + '\n' + result.value.errText);
+      return;
+    }
+  }
+
+  Future<String> get documentsPath async {
+    final directory = await getApplicationDocumentsDirectory();
+    return directory.path;
+  }
+
+  String get videoOutput {
+    if (Platform.isMacOS) {
+      return '''\'$videoLocation/%(title)s.%(ext)s\'''';
+    }
+
+    if (Platform.isWindows) {
+      return '\'$VIDEO_FOLDER_NAME/%(title)s.%(ext)s\'';
+    }
+
+    return '\'$VIDEO_FOLDER_NAME/%(title)s.%(ext)s\'';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-      ),
       body: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: Column(
           children: <Widget>[
             ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 0),
               title: TextField(
                 controller: _inputController,
                 decoration: InputDecoration(hintText: 'Input a video link'),
@@ -258,38 +364,48 @@ class _MyHomePageState extends State<MyHomePage> {
                   ? CircularProgressIndicator()
                   : IconButton(icon: Icon(Icons.search), onPressed: null),
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                      child: Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: Text(version),
-                  )),
-                  SizedBox(
-                    width: 44,
-                    height: 44,
-                    child: RaisedButton(
-                        color: Theme.of(context).primaryColor,
-                        textColor: Colors.white,
-                        child: Icon(Icons.refresh),
-                        onPressed: checkYoutubeDL),
-                  ),
-                ],
-              ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Text('Youtube-dl version: '),
+                Expanded(child: Text(version)),
+                SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: ElevatedButton(
+                      child: Icon(Icons.refresh), onPressed: checkYoutubeDL),
+                )
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 30,
-                child: RaisedButton(
-                    color: Theme.of(context).primaryColor,
-                    textColor: Colors.white,
-                    child: Text('Add to Queue'),
-                    onPressed: addToQueue),
-              ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Text('Video Location: '),
+                Expanded(child: SelectableText(videoLocation)),
+                Platform.isMacOS
+                    ? SizedBox(
+                        width: 44,
+                        height: 44,
+                        child: ElevatedButton(
+                            child: Icon(Icons.folder),
+                            onPressed: openVideoLocation),
+                      )
+                    : SizedBox(),
+                SizedBox(width: 8),
+                SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: ElevatedButton(
+                      child: Icon(Icons.refresh), onPressed: getVideoLocation),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton(
+                  child: Text('Add to Queue'), onPressed: addToQueue),
             ),
             Expanded(
               child: ListView.builder(
@@ -299,9 +415,13 @@ class _MyHomePageState extends State<MyHomePage> {
                     return Column(
                       children: [
                         ListTile(
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 0),
                           leading: item.thumbnail.isNotEmpty
-                              ? Image.network(item.thumbnail,
-                                  height: 100, width: 100)
+                              ? SizedBox(
+                                  height: 400,
+                                  child: Image.network(item.thumbnail),
+                                )
                               : SizedBox(width: 100, height: 100),
                           title: Text(item.title),
                           subtitle: Text(item.duration),
@@ -314,29 +434,23 @@ class _MyHomePageState extends State<MyHomePage> {
                                   }),
                         ),
                         item.downloadPercentage != 0
-                            ? Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: LinearProgressIndicator(
-                                    value: item.downloadPercentage / 100),
-                              )
+                            ? LinearProgressIndicator(
+                                value: item.downloadPercentage / 100)
                             : SizedBox(),
                       ],
                     );
                   }),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: SizedBox(
-                width: double.infinity,
-                height: 30,
-                child: RaisedButton(
-                  color: Theme.of(context).primaryColor,
-                  textColor: Colors.white,
-                  child: Text('Download'),
-                  onPressed: download,
-                ),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton(
+                child: Text('Download'),
+                onPressed: download,
               ),
             ),
+            SizedBox(height: 16),
+            Text('V1.1.0'),
           ],
         ),
       ),
@@ -344,11 +458,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-extension ProcessResultEx on ProcessResult {
+extension _ProcessResultEx on ProcessResult {
   Map<String, Object> get toJson {
     final error = stderr.toString();
     final result = stdout.toString();
-    log(stderr.toString());
     return {
       'exitCode': exitCode,
       'stdout': result,
@@ -369,25 +482,14 @@ extension StringEx on String {
     }
 
     if (Platform.isMacOS) {
-      return this.substring(2);
+      if (this.contains('youtube-dl')) {
+        //return '/usr/local/bin/' + this.substring(2);
+        return this.substring(2); // work around
+      }
+
+      return this;
     }
 
     return this;
-  }
-}
-
-extension FutureEx<T> on Future<T> {
-  Future<Tuple3<T, dynamic, StackTrace>> toTuple(
-      {bool logError = false}) async {
-    try {
-      final result = await this;
-      return Tuple3(result, null, null);
-    } catch (e, stacktrace) {
-      if (logError) {
-        log('Future get error on ');
-        log(e.toString());
-      }
-      return Tuple3(null, e, stacktrace);
-    }
   }
 }
