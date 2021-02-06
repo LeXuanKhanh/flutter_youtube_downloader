@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:developer';
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_youtube_downloader/Extension/FutureEx.dart';
@@ -142,6 +143,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void showSnackBar(String text) {
     final snackBar = SnackBar(
         content: Wrap(
+          direction: Axis.vertical,
           children: [
             Text(text),
             OutlinedButton(
@@ -206,13 +208,13 @@ class _MyHomePageState extends State<MyHomePage> {
         .toResult();
 
     if (result.error != null) {
-      final error2 = result.error.toString();
+      final error2 = (result.error as ShellException).toErrorString;
       final title = "Can't check the version of youtube-dl";
       setState(() {
         version = title;
       });
       showSnackBar(title + '\n' + error2);
-      log(result.error.toString());
+      log((result.error as ShellException).toErrorString);
       log(result.stackTrace.toString());
       return;
     }
@@ -274,7 +276,7 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         videoLocation = '''can't get video location''';
       });
-      showSnackBar(videoLocation + '\n' + result.error.toString());
+      showSnackBar(videoLocation + '\n' + (result.error as ShellException).toErrorString);
       return;
     }
 
@@ -303,23 +305,59 @@ class _MyHomePageState extends State<MyHomePage> {
         videoLocation = localPath + '/$VIDEO_FOLDER_NAME';
       });
 
-      await newShell.run('mkdir -p $videoLocation').toResult(logError: true);
+      await newShell.run('mkdir -p $videoLocation'.crossPlatformCommand).toResult(logError: true);
       return;
     }
 
-    setState(() {
-      videoLocation = result.value.outText + '/$VIDEO_FOLDER_NAME';
-    });
+    if (Platform.isWindows) {
+      setState(() {
+        videoLocation = result.value.outText.split('----').last.trim() + '\\$VIDEO_FOLDER_NAME';
+        return;
+      });
+
+      await newShell.run('mkdir -p $videoLocation'.crossPlatformCommand).toResult(logError: true);
+      return;
+    }
+
   }
 
   void openVideoLocation() async {
     final newShell = Shell(verbose: false);
+
+    var cmdOpenFolder = 'open'; //MacOS
+    if (Platform.isWindows) {
+      cmdOpenFolder = 'start';
+    }
+
     var result = await newShell
-        .run('open $videoLocation'.crossPlatformCommand)
+        .run('$cmdOpenFolder $videoLocation'.crossPlatformCommand)
         .toResult();
 
     if (result.error != null) {
-      showSnackBar(videoLocation + '\n' + result.error.toString());
+      showSnackBar(videoLocation + '\n' + (result.error as ShellException).toErrorString);
+      return;
+    }
+
+    if (result.value.errText.isNotEmpty) {
+      showSnackBar(videoLocation + '\n' + result.value.errText);
+      return;
+    }
+  }
+
+  void openLink(String link) async {
+    final newShell = Shell(verbose: false);
+
+    var cmdOpenFolder = 'open'; //MacOS
+    if (Platform.isWindows) {
+      cmdOpenFolder = 'explorer';
+    }
+
+    var result = await newShell
+        .run('$cmdOpenFolder $link')
+        .toResult();
+
+    if (result.error != null) {
+      showSnackBar(videoLocation + '\n' + (result.error as ShellException).toErrorString);
       return;
     }
 
@@ -364,7 +402,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ? CircularProgressIndicator()
                   : IconButton(icon: Icon(Icons.search), onPressed: null),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Text('Youtube-dl version: '),
@@ -382,15 +420,13 @@ class _MyHomePageState extends State<MyHomePage> {
               children: [
                 Text('Video Location: '),
                 Expanded(child: SelectableText(videoLocation)),
-                Platform.isMacOS
-                    ? SizedBox(
+                SizedBox(
                         width: 44,
                         height: 44,
                         child: ElevatedButton(
                             child: Icon(Icons.folder),
                             onPressed: openVideoLocation),
-                      )
-                    : SizedBox(),
+                      ),
                 SizedBox(width: 8),
                 SizedBox(
                   width: 44,
@@ -450,7 +486,19 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
             SizedBox(height: 16),
-            Text('V1.1.0'),
+            RichText(
+              text: TextSpan(
+                style: Theme.of(context).textTheme.bodyText1,
+                children: <TextSpan>[
+                  TextSpan(text: 'V1.1.0 - '),
+                  TextSpan(
+                      text: 'Github',
+                      style: TextStyle(color: Colors.blue),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () => openLink(GITHUB_LINK)),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -478,7 +526,7 @@ extension ShellExceptionEx on ShellException {
 extension StringEx on String {
   String get crossPlatformCommand {
     if (Platform.isWindows) {
-      return 'start /B powershell -windowstyle hidden -c "${this}"';
+      return 'powershell -c "${this}"';
     }
 
     if (Platform.isMacOS) {
