@@ -94,8 +94,14 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     });
 
+    test();
     checkYoutubeDL();
     getVideoLocation();
+  }
+
+  void test() async {
+    final result = await shell.run('pwd');
+    print(result.outText);
   }
 
   @override
@@ -144,6 +150,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final snackBar = SnackBar(
         content: Wrap(
           direction: Axis.vertical,
+          spacing: 8,
           children: [
             Text(text),
             OutlinedButton(
@@ -177,7 +184,7 @@ class _MyHomePageState extends State<MyHomePage> {
     if (videoInfo.error != null) {
       var error = videoInfo.error.toString();
       if (videoInfo.error is ShellException) {
-        error = (videoInfo.error as ShellException).toErrorString;
+        error = (videoInfo.error as ShellException).toError.toString();
         log(error);
       } else {
         log(videoInfo.error.toString());
@@ -208,13 +215,15 @@ class _MyHomePageState extends State<MyHomePage> {
         .toResult();
 
     if (result.error != null) {
-      final error2 = (result.error as ShellException).toErrorString;
+      print('check youtube error');
+      print((result.error as ShellException).message);
+      final error2 = (result.error as ShellException).toError ?? (result.error as ShellException).message;
       final title = "Can't check the version of youtube-dl";
       setState(() {
         version = title;
       });
       showSnackBar(title + '\n' + error2);
-      log((result.error as ShellException).toErrorString);
+      log((result.error as ShellException).toError.toString());
       log(result.stackTrace.toString());
       return;
     }
@@ -276,7 +285,7 @@ class _MyHomePageState extends State<MyHomePage> {
       setState(() {
         videoLocation = '''can't get video location''';
       });
-      showSnackBar(videoLocation + '\n' + (result.error as ShellException).toErrorString);
+      showSnackBar(videoLocation + '\n' + (result.error as ShellException).toError);
       return;
     }
 
@@ -334,7 +343,7 @@ class _MyHomePageState extends State<MyHomePage> {
         .toResult();
 
     if (result.error != null) {
-      showSnackBar(videoLocation + '\n' + (result.error as ShellException).toErrorString);
+      showSnackBar(videoLocation + '\n' + (result.error as ShellException).toError);
       return;
     }
 
@@ -357,7 +366,7 @@ class _MyHomePageState extends State<MyHomePage> {
         .toResult();
 
     if (result.error != null) {
-      showSnackBar(videoLocation + '\n' + (result.error as ShellException).toErrorString);
+      showSnackBar(videoLocation + '\n' + (result.error as ShellException).toError);
       return;
     }
 
@@ -486,19 +495,21 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
             SizedBox(height: 16),
-            RichText(
-              text: TextSpan(
-                style: Theme.of(context).textTheme.bodyText1,
-                children: <TextSpan>[
-                  TextSpan(text: 'V1.1.0 - '),
-                  TextSpan(
-                      text: 'Github',
-                      style: TextStyle(color: Colors.blue),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () => openLink(GITHUB_LINK)),
-                ],
-              ),
-            ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('V1.1.0 -'),
+                TextButton(
+                    style: ButtonStyle(
+                      overlayColor: MaterialStateProperty.all(Colors.transparent),
+                      foregroundColor: MaterialStateProperty.all(Colors.blue),
+                    ),
+                    child: Text('Github'),
+                    onPressed: () => openLink(GITHUB_LINK)
+                )
+              ],
+            )
           ],
         ),
       ),
@@ -520,7 +531,7 @@ extension _ProcessResultEx on ProcessResult {
 }
 
 extension ShellExceptionEx on ShellException {
-  String get toErrorString => this.result.stderr.toString();
+  String get toError => this.result?.stderr;
 }
 
 extension StringEx on String {
@@ -531,8 +542,8 @@ extension StringEx on String {
 
     if (Platform.isMacOS) {
       if (this.contains('youtube-dl')) {
-        //return '/usr/local/bin/' + this.substring(2);
-        return this.substring(2); // work around
+        return '/usr/local/bin/' + this.substring(2);
+        //return this.substring(2); // work around
       }
 
       return this;
