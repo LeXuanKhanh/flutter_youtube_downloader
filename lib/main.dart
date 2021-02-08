@@ -366,7 +366,7 @@ class _MyHomePageState extends State<MyHomePage> {
         .toResult();
 
     if (result.error != null) {
-      showSnackBar(videoLocation + '\n' + (result.error as ShellException).toError);
+      //showSnackBar(videoLocation + '\n' + (result.error as ShellException).toError);
       return;
     }
 
