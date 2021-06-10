@@ -8,6 +8,7 @@ import 'package:flutter_youtube_downloader/Extension/FutureEx.dart';
 import 'package:flutter_youtube_downloader/VideoInfo.dart';
 import 'package:process_run/shell.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter_youtube_downloader/Extension/ListEx.dart';
 
 import 'GlobalVariables.dart';
 
@@ -30,7 +31,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+  MyHomePage({Key? key, required this.title}) : super(key: key);
   final String title;
 
   @override
@@ -41,9 +42,9 @@ class _MyHomePageState extends State<MyHomePage> {
   var controller = ShellLinesController();
   var _inputController = TextEditingController();
   List<VideoInfo> videoList = [];
-  Shell shell;
+  late Shell shell;
   var isLoading = false;
-  String currentDownloadVideoId;
+  String? currentDownloadVideoId;
   String version = '';
   String videoLocation = '';
 
@@ -53,9 +54,8 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     if (Platform.isMacOS) {
       final env = Platform.environment;
-      final dir = env['HOME'] + '/Documents';
-      shell =
-          Shell(stdout: controller.sink, verbose: false, workingDirectory: dir);
+      final dir = env['HOME']! + '/Documents';
+      shell = Shell(stdout: controller.sink, verbose: false, workingDirectory: dir);
     }
 
     if (Platform.isWindows) {
@@ -74,17 +74,24 @@ class _MyHomePageState extends State<MyHomePage> {
       if (event.contains('[download]') &&
           event.contains('of') &&
           event.contains('%')) {
-        final percent = event
-            .split(' ')
-            .firstWhere((element) => element.contains('%'))
-            .split('%')
-            .first;
-        final item = videoList
-            .firstWhere((element) => element.id == currentDownloadVideoId);
+        String? percent;
+        VideoInfo? item;
+        try {
+          percent = event
+              .split(' ')
+              .firstWhere((element) => element.contains('%'))
+              .split('%')
+              .first;
+          item = videoList
+              .firstWhere((element) => element.id == currentDownloadVideoId);
+        } catch (e) {
+          showSnackBar(e.toString());
+        }
+
         // print(percent);
         if ((percent != null) && (item != null)) {
           setState(() {
-            item.downloadPercentage = double.parse(percent);
+            item!.downloadPercentage = double.parse(percent!);
             if (double.parse(percent) == 100) {
               item.isLoading = false;
             }
@@ -140,25 +147,86 @@ class _MyHomePageState extends State<MyHomePage> {
     } on ShellException catch (e) {
       // We might get a shell exception
       log('error');
-      showSnackBar(e.result.stderr);
-      log(e.result.stderr);
+      showSnackBar(e.result?.stderr);
+      log(e.result?.stderr);
     }
+  }
+
+  void downloadV2() async {
+    for (var item in videoList) {
+      final newController = ShellLinesController();
+      final newShell = createShell(controller: newController);
+      controller.stream.listen((event) {
+        //print(event);
+
+        if (currentDownloadVideoId == null) {
+          return;
+        }
+
+        // [download] <percent>% of <size>MiB at <currentTime>
+        // [download] <percent>% of <size>MiB in <currentTime>
+        // [download] <percent>% of <size>MiB
+        if (event.contains('[download]') &&
+            event.contains('of') &&
+            event.contains('%')) {
+          String? percent;
+          try {
+            percent = event
+                .split(' ')
+                .firstWhere((element) => element.contains('%'))
+                .split('%')
+                .first;
+            item = videoList
+                .firstWhere((element) => element.id == currentDownloadVideoId);
+          } catch (e) {}
+
+          // print(percent);
+          if (percent != null) {
+            final percentNotNull = percent;
+            setState(() {
+              item.downloadPercentage = double.parse(percentNotNull);
+              if (double.parse(percentNotNull) == 100) {
+                item.isLoading = false;
+              }
+            });
+          }
+        }
+      });
+
+      await newShell.run(
+          '.\\youtube-dl --cookies ${item.type.cookieFile} -o $videoOutput \'${item.link}\''
+              .crossPlatformCommand);
+    }
+  }
+
+  Shell createShell({required ShellLinesController controller}) {
+    //Platform.isMacOS
+    final env = Platform.environment;
+    final dir = env['HOME']! + '/Documents';
+    var shell =
+        Shell(stdout: controller.sink, verbose: false, workingDirectory: dir);
+
+    if (Platform.isWindows) {
+      shell = Shell(stdout: controller.sink, verbose: false);
+    }
+
+    return shell;
   }
 
   void showSnackBar(String text) {
     final snackBar = SnackBar(
         content: Wrap(
-          direction: Axis.vertical,
-          spacing: 8,
-          children: [
-            Text(text),
-            OutlinedButton(
-                child: Text('Copy Error'),
-                onPressed: () {
-                  Clipboard.setData(ClipboardData(text: text));
-                })
-          ],
-        ));
+      direction: Axis.vertical,
+      spacing: 8,
+      children: [
+        Text(text),
+        OutlinedButton(
+            child: Text('Copy Error'),
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: text));
+            })
+      ],
+    ));
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
@@ -195,7 +263,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     setState(() {
-      videoList.add(videoInfo.value);
+      videoList.add(videoInfo.value!);
     });
   }
 
@@ -212,23 +280,27 @@ class _MyHomePageState extends State<MyHomePage> {
     final result = await shell
         .run('.\\youtube-dl --version'.crossPlatformCommand)
         .toResult();
-
-    if (result.error != null) {
-      print('check youtube error');
-      print((result.error as ShellException).message);
-      final error2 = (result.error as ShellException).toError ?? (result.error as ShellException).message;
-      final title = "Can't check the version of youtube-dl";
-      setState(() {
-        version = title;
-      });
-      showSnackBar(title + '\n' + error2);
-      log((result.error as ShellException).toError.toString());
-      log(result.stackTrace.toString());
-      return;
+    
+    if (result.value == null) {
+      if (result.error != null) {
+        print('check youtube error');
+        print((result.error as ShellException).message);
+        final error2 = (result.error as ShellException).toError ??
+            (result.error as ShellException).message;
+        final title = "Can't check the version of youtube-dl";
+        setState(() {
+          version = title;
+        });
+        showSnackBar(title + '\n' + error2);
+        log((result.error as ShellException).toError.toString());
+        log(result.stackTrace.toString());
+        return;
+      }
     }
 
-    if (result.value.errText.isNotEmpty) {
-      final error = result.value.errText;
+    final value = result.value!;
+    if (value.errText.isNotEmpty) {
+      final error = result.value!.errText;
       final title = "Can't check the version of youtube-dl";
       setState(() {
         version = title;
@@ -239,11 +311,11 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     setState(() {
-      version = result.value.outText.split('\n').first.toString();
+      version = value.outText.split('\n').first.toString();
     });
   }
 
-  Future<VideoInfo> getVideoInfoFrom({@required String link}) async {
+  Future<VideoInfo> getVideoInfoFrom({required String link}) async {
     final type = VideoType.other.fromLinkString(link: link);
     final result = await shell.run(
         '.\\youtube-dl --cookies ${type.cookieFile} --get-title --get-id --get-thumbnail --get-duration  \'$link\''
@@ -255,15 +327,15 @@ class _MyHomePageState extends State<MyHomePage> {
       throw error;
     }
 
-    final data = result.outText.toString()?.split("\n");
-    final title = data[0] ?? "";
-    final id = data[1] ?? "";
-    final thumbnail = data[2] ?? "";
+    final List<String?> data = result.outText.toString().split("\n");
+    print(result.outText);
+    final title = data.valueAt(index: 0) ?? "";
+    final id = data.valueAt(index: 1) ?? "";
+    final thumbnail = data.valueAt(index:2) ?? "";
     // data?.firstWhere((element) => element.contains('http'), orElse: () => "");
     // pattern <number:number>
-    final duration = data[3] ?? "";
+    final duration = data.valueAt(index: 3) ?? "";
     //data?.firstWhere((element) => element.contains('[0-9]+\:+[0-9]'), orElse: () => "");
-
     return VideoInfo(
         link: link,
         title: title,
@@ -280,24 +352,27 @@ class _MyHomePageState extends State<MyHomePage> {
     final newShell = Shell(verbose: false);
     var result = await newShell.run('pwd'.crossPlatformCommand).toResult();
 
-    if (result.error != null) {
-      setState(() {
-        videoLocation = '''can't get video location''';
-      });
-      showSnackBar(videoLocation + '\n' + (result.error as ShellException).toError);
-      return;
+    if (result.value == null) {
+      if (result.error != null) {
+        final error = (result.error as ShellException).toError!;
+        setState(() {
+          videoLocation = '''can't get video location''';
+        });
+        showSnackBar(videoLocation + '\n' + error);
+        return;
+      }
     }
+    final value = result.value!;
 
-    if (result.value.errText.isNotEmpty) {
+    if (value.errText.isNotEmpty) {
       setState(() {
         videoLocation = '''can't get video location''';
       });
-      showSnackBar(videoLocation + '\n' + result.value.errText);
+      showSnackBar(videoLocation + '\n' + value.errText);
       return;
     }
 
     // work around
-    // if ((Platform.isMacOS) && videoLocation == '/') {
     if ((Platform.isMacOS)) {
       final localPath = await documentsPath;
       if (localPath.isEmpty) {
@@ -319,7 +394,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (Platform.isWindows) {
       setState(() {
-        videoLocation = result.value.outText.split('----').last.trim() + '\\$VIDEO_FOLDER_NAME';
+        videoLocation = value.outText.split('----').last.trim() + '\\$VIDEO_FOLDER_NAME';
         return;
       });
 
@@ -341,13 +416,17 @@ class _MyHomePageState extends State<MyHomePage> {
         .run('$cmdOpenFolder $videoLocation'.crossPlatformCommand)
         .toResult();
 
-    if (result.error != null) {
-      showSnackBar(videoLocation + '\n' + (result.error as ShellException).toError);
-      return;
+    if (result.value == null) {
+      if (result.error != null) {
+        final error = (result.error as ShellException).toError!;
+        showSnackBar(
+            videoLocation + '\n' + error);
+        return;
+      }
     }
-
-    if (result.value.errText.isNotEmpty) {
-      showSnackBar(videoLocation + '\n' + result.value.errText);
+    final value = result.value!;
+    if (value.errText.isNotEmpty) {
+      showSnackBar(videoLocation + '\n' + value.errText);
       return;
     }
   }
@@ -360,17 +439,17 @@ class _MyHomePageState extends State<MyHomePage> {
       cmdOpenFolder = 'explorer';
     }
 
-    var result = await newShell
-        .run('$cmdOpenFolder $link')
-        .toResult();
+    var result = await newShell.run('$cmdOpenFolder $link').toResult();
 
-    if (result.error != null) {
-      //showSnackBar(videoLocation + '\n' + (result.error as ShellException).toError);
-      return;
+    if (result.value == null) {
+      if (result.error != null) {
+        return;
+      }
     }
+    final value = result.value!;
 
-    if (result.value.errText.isNotEmpty) {
-      showSnackBar(videoLocation + '\n' + result.value.errText);
+    if (value.errText.isNotEmpty) {
+      showSnackBar(videoLocation + '\n' + value.errText);
       return;
     }
   }
@@ -429,12 +508,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 Text('Video Location: '),
                 Expanded(child: SelectableText(videoLocation)),
                 SizedBox(
-                        width: 44,
-                        height: 44,
-                        child: ElevatedButton(
-                            child: Icon(Icons.folder),
-                            onPressed: openVideoLocation),
-                      ),
+                  width: 44,
+                  height: 44,
+                  child: ElevatedButton(
+                      child: Icon(Icons.folder), onPressed: openVideoLocation),
+                ),
                 SizedBox(width: 8),
                 SizedBox(
                   width: 44,
@@ -501,12 +579,12 @@ class _MyHomePageState extends State<MyHomePage> {
                 Text('V1.1.0 -'),
                 TextButton(
                     style: ButtonStyle(
-                      overlayColor: MaterialStateProperty.all(Colors.transparent),
+                      overlayColor:
+                          MaterialStateProperty.all(Colors.transparent),
                       foregroundColor: MaterialStateProperty.all(Colors.blue),
                     ),
                     child: Text('Github'),
-                    onPressed: () => openLink(GITHUB_LINK)
-                )
+                    onPressed: () => openLink(GITHUB_LINK))
               ],
             )
           ],
@@ -530,7 +608,7 @@ extension _ProcessResultEx on ProcessResult {
 }
 
 extension ShellExceptionEx on ShellException {
-  String get toError => this.result?.stderr;
+  String? get toError => this.result?.stderr;
 }
 
 extension StringEx on String {

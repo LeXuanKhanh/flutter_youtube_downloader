@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 class FutureResult<T> {
-  T value;
+  T? value;
   dynamic error;
-  StackTrace stackTrace;
+  StackTrace? stackTrace;
 
   FutureResult({
-    @required this.value,
-    @required this.error,
-    @required this.stackTrace
+    required this.value,
+    required this.error,
+    required this.stackTrace
   });
 
 }
