@@ -10,6 +10,7 @@ import 'package:process_run/shell.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter_youtube_downloader/Extension/ListEx.dart';
 
+import 'FutureResult.dart';
 import 'GlobalVariables.dart';
 
 void main() {
@@ -280,35 +281,17 @@ class _MyHomePageState extends State<MyHomePage> {
     final result = await shell
         .run('.\\youtube-dl --version'.crossPlatformCommand)
         .toResult();
-    
-    if (result.value == null) {
-      if (result.error != null) {
-        print('check youtube error');
-        print((result.error as ShellException).message);
-        final error2 = (result.error as ShellException).toError ??
-            (result.error as ShellException).message;
-        final title = "Can't check the version of youtube-dl";
-        setState(() {
-          version = title;
-        });
-        showSnackBar(title + '\n' + error2);
-        log((result.error as ShellException).toError.toString());
-        log(result.stackTrace.toString());
-        return;
-      }
-    }
 
-    final value = result.value!;
-    if (value.errText.isNotEmpty) {
-      final error = result.value!.errText;
+    if (result.isError(onError: (error, stackTrace) {
       final title = "Can't check the version of youtube-dl";
       setState(() {
         version = title;
       });
       showSnackBar(title + '\n' + error);
-      log(error);
+    })) {
       return;
     }
+    final value = result.value!;
 
     setState(() {
       version = value.outText.split('\n').first.toString();
@@ -350,27 +333,14 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     final newShell = Shell(verbose: false);
-    var result = await newShell.run('pwd'.crossPlatformCommand).toResult();
+    final result = await newShell.run('pwd'.crossPlatformCommand).toResult();
 
-    if (result.value == null) {
-      if (result.error != null) {
-        final error = (result.error as ShellException).toError!;
-        setState(() {
-          videoLocation = '''can't get video location''';
-        });
-        showSnackBar(videoLocation + '\n' + error);
-        return;
-      }
-    }
-    final value = result.value!;
-
-    if (value.errText.isNotEmpty) {
-      setState(() {
-        videoLocation = '''can't get video location''';
-      });
-      showSnackBar(videoLocation + '\n' + value.errText);
+    if (result.isError(onError: (error, _) {
+      showSnackBar(videoLocation + '\n' + error);
+    })) {
       return;
     }
+    final value = result.value!;
 
     // work around
     if ((Platform.isMacOS)) {
@@ -407,26 +377,20 @@ class _MyHomePageState extends State<MyHomePage> {
   void openVideoLocation() async {
     final newShell = Shell(verbose: false);
 
-    var cmdOpenFolder = 'open'; //MacOS
+    final String cmdOpenFolder; //MacOS
     if (Platform.isWindows) {
       cmdOpenFolder = 'start';
+    } else {
+      cmdOpenFolder = 'open';
     }
 
-    var result = await newShell
+    final result = await newShell
         .run('$cmdOpenFolder $videoLocation'.crossPlatformCommand)
         .toResult();
 
-    if (result.value == null) {
-      if (result.error != null) {
-        final error = (result.error as ShellException).toError!;
-        showSnackBar(
-            videoLocation + '\n' + error);
-        return;
-      }
-    }
-    final value = result.value!;
-    if (value.errText.isNotEmpty) {
-      showSnackBar(videoLocation + '\n' + value.errText);
+    if (result.isError(onError: (error, _ ) {
+      showSnackBar(videoLocation + '\n' + error);
+    })) {
       return;
     }
   }
@@ -439,17 +403,11 @@ class _MyHomePageState extends State<MyHomePage> {
       cmdOpenFolder = 'explorer';
     }
 
-    var result = await newShell.run('$cmdOpenFolder $link').toResult();
+    final result = await newShell.run('$cmdOpenFolder $link').toResult();
 
-    if (result.value == null) {
-      if (result.error != null) {
-        return;
-      }
-    }
-    final value = result.value!;
-
-    if (value.errText.isNotEmpty) {
-      showSnackBar(videoLocation + '\n' + value.errText);
+    if (result.isError(onError: (error, stackTrace) {
+      showSnackBar(videoLocation + '\n' + error);
+    })) {
       return;
     }
   }
@@ -604,6 +562,37 @@ extension _ProcessResultEx on ProcessResult {
       'stderr': error,
       'pid': pid
     };
+  }
+}
+
+extension _FutureProcessResult on FutureResult<List<ProcessResult>> {
+  bool isError({required Function(String, StackTrace?) onError }) {
+    if (this.value == null) {
+      if (this.error != null) {
+        print('check youtube error');
+        print((this.error as ShellException).message);
+        final error = (this.error as ShellException).toError ??
+            (this.error as ShellException).message;
+
+        onError(error, stackTrace);
+        //showSnackBar(title + '\n' + error);
+        log((this.error as ShellException).toError.toString());
+        log(this.stackTrace.toString());
+        return true;
+      }
+    }
+
+    final value = this.value!;
+    if (value.errText.isNotEmpty) {
+      final error = this.value!.errText;
+      onError(error, stackTrace);
+
+      //showSnackBar(title + '\n' + error);
+      log(error);
+      return true;
+    }
+
+    return false;
   }
 }
 
