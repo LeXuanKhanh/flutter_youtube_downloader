@@ -22,7 +22,7 @@ extension VideoTypeEx on VideoType {
   }
 
   // custom enum init cheat
-  VideoType fromLinkString({@required String link}) {
+  VideoType fromLinkString({required String link}) {
     if (link.contains('facebook')) {
       return VideoType.facebook;
     }
@@ -51,18 +51,18 @@ class VideoInfo {
     }
 
     if (link.contains('youtube')) {
-      return VideoType.facebook;
+      return VideoType.youtube;
     }
 
     return VideoType.other;
   }
 
   VideoInfo({
-    @required this.link,
-    @required this.title,
-    @required this.thumbnail,
-    @required this.duration,
-    @required this.id
+    required this.link,
+    required this.title,
+    required this.thumbnail,
+    required this.duration,
+    required this.id
   });
 
   Map<String, dynamic> toJson() {
