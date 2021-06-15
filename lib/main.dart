@@ -102,7 +102,10 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     test();
-    checkYoutubeDL();
+    Future.delayed(const Duration(milliseconds: 1000), () {
+      checkYoutubeDL();
+    });
+    //checkYoutubeDL();
     getVideoLocation();
   }
 
