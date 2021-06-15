@@ -537,7 +537,7 @@ class _MyHomePageState extends State<MyHomePage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('V1.1.0 -'),
+                Text('V1.2.0 -'),
                 TextButton(
                     style: ButtonStyle(
                       overlayColor:
