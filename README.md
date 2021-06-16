@@ -8,9 +8,9 @@ Since my favorite video download page i usually use got shutdown, i wrote this :
 
 You can download the app 
 
-- Windows: [here](https://github.com/LeXuanKhanh/flutter_youtube_downloader/releases/download/1.1/flutter_youtube_downloader_1.1.0_WIN.zip)
+- Windows: [here](https://github.com/LeXuanKhanh/flutter_youtube_downloader/releases/download/v1.2/flutter_youtube_downloader_1.2.0.zip)
 
-- Mac OS: [here](https://github.com/LeXuanKhanh/flutter_youtube_downloader/releases/download/1.1/flutter_youtube_downloader_1.1.0_MAC.dmg)
+- Mac OS: [here](https://github.com/LeXuanKhanh/flutter_youtube_downloader/releases/download/v1.2/flutter_youtube_downloader_1.2.dmg)
 
 ## Setup
 By default, the folder don't have additional `youtube-dl.exe`, in order for the app to work, you need to install youtube-dl.
