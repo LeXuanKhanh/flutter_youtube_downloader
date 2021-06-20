@@ -1,0 +1,3 @@
+extension IntEx on int {
+
+}
