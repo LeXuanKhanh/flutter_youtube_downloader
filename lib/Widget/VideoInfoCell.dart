@@ -4,16 +4,16 @@ import '../Model/VideoInfo.dart';
 class VideoInfoCell extends StatelessWidget {
   final VideoInfo item;
   final VoidCallback onRemoveButtonTap;
-  final Function(int) onSelectResolutionDropDown;
+  final Function(VideoResolution) onSelectResolutionDropDown;
 
   VideoInfoCell(
       {required this.item,
       required this.onRemoveButtonTap,
       required this.onSelectResolutionDropDown});
 
-  List<DropdownMenuItem<int>> get dropDownItems {
-    return this.item.availableResolutions.map<DropdownMenuItem<int>>((value) {
-      return DropdownMenuItem<int>(value: value, child: Text('${value}p'));
+  List<DropdownMenuItem<VideoResolution>> get dropDownItems {
+    return this.item.availableResolutions.map<DropdownMenuItem<VideoResolution>>((value) {
+      return DropdownMenuItem<VideoResolution>(value: value, child: Text(value.formatNote));
     }).toList();
   }
 
@@ -35,7 +35,7 @@ class VideoInfoCell extends StatelessWidget {
                   MainAxisAlignment.spaceBetween,
                   children: [
                     Text(item.title),
-                    DropdownButton<int>(
+                    DropdownButton<VideoResolution>(
                       value: item.selectedResolutions,
                       items: dropDownItems,
                       onChanged: (value) => onSelectResolutionDropDown(value!),

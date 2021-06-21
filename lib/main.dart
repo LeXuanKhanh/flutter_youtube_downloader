@@ -65,7 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     controller.stream.listen((event) {
-      //print(event);
+      //log(event);
       if (currentDownloadVideoId == null) {
         return;
       }
@@ -90,7 +90,7 @@ class _MyHomePageState extends State<MyHomePage> {
           showSnackBar(e.toString());
         }
 
-        // print(percent);
+        // log(percent);
         if ((percent != null) && (item != null)) {
           setState(() {
             item!.downloadPercentage = double.parse(percent!);
@@ -121,7 +121,7 @@ class _MyHomePageState extends State<MyHomePage> {
 //      shell = shell.pushd('test');
 //      final result = await shell.run("powershell -c pwd");
 //      for (var item in result) {
-//        print(item.stdout.toString().split("\n"));
+//        log(item.stdout.toString().split("\n"));
 //      }
 //    } on ShellException catch (e) {
 //      // We might get a shell exception
@@ -132,7 +132,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void download() async {
     try {
-      print("begin to download");
+      log("begin to download");
       for (var item in videoList) {
         currentDownloadVideoId = item.id;
         item.downloadPercentage = 0;
@@ -156,7 +156,7 @@ class _MyHomePageState extends State<MyHomePage> {
       final newController = ShellLinesController();
       final newShell = createShell(controller: newController);
       controller.stream.listen((event) {
-        //print(event);
+        //log(event);
 
         if (currentDownloadVideoId == null) {
           return;
@@ -179,7 +179,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 .firstWhere((element) => element.id == currentDownloadVideoId);
           } catch (e) {}
 
-          // print(percent);
+          // log(percent);
           if (percent != null) {
             final percentNotNull = percent;
             setState(() {
@@ -296,6 +296,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final value = result.value!;
     final json = jsonDecode(value.outText);
+    //log(json);
 
     if (!(json is Map<String, dynamic>))  {
       return null;
@@ -306,7 +307,7 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     final videoInfo = VideoInfo.fromJson(json);
-    print(videoInfo.availableResolutions);
+    log(videoInfo.availableResolutions.toString());
     return videoInfo;
   }
 
@@ -532,8 +533,8 @@ extension _FutureProcessResult on FutureResult<List<ProcessResult>> {
   bool isError({required Function(String, StackTrace?) onError }) {
     if (this.value == null) {
       if (this.error != null) {
-        print('check youtube error');
-        print((this.error as ShellException).message);
+        log('check youtube error');
+        log((this.error as ShellException).message);
         final error = (this.error as ShellException).toError ??
             (this.error as ShellException).message;
 

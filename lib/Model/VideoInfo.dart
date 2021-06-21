@@ -59,7 +59,7 @@ class VideoInfo {
   @JsonKey(ignore: true)
   bool isLoading = false;
   @JsonKey(ignore: true)
-  late int selectedResolutions;
+  late VideoResolution selectedResolutions;
 
   VideoType get type {
     if (link.contains('facebook')) {
@@ -87,8 +87,10 @@ class VideoInfo {
     final audioFormats = formats.where((element) => element.type == VideoFormatType.audio).toList();
     return audioFormats;
   }
-  List<int> get availableResolutions {
-    final videoFormatDescriptions = videoFormats.map((e) => e.height).toSet().toList();
+  List<VideoResolution> get availableResolutions {
+    final videoFormatDescriptions = videoFormats
+        .map((e) => VideoResolution(formatNote: e.formatNote, height: e.height))
+        .toSet().toList();
     return videoFormatDescriptions;
   }
 
@@ -113,5 +115,37 @@ class VideoInfo {
 
   factory VideoInfo.fromJson(Map<String, dynamic> json) => _$VideoInfoFromJson(json);
   Map<String, dynamic> toJson() => _$VideoInfoToJson(this);
+
+}
+
+class VideoResolution {
+  String formatNote;
+  int height;
+
+  VideoResolution({
+    required this.formatNote,
+    required this.height
+  });
+
+  @override
+  String toString() {
+    // TODO: implement toString
+    return '$formatNote-$height';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    // TODO: implement ==
+    if (!(other is VideoResolution)) {
+      return super == other;
+    }
+
+    return (height == other.height);
+
+  }
+
+  @override
+  // TODO: implement hashCode
+  int get hashCode => height;
 
 }
