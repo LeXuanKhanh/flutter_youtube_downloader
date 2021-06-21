@@ -139,9 +139,17 @@ class _MyHomePageState extends State<MyHomePage> {
         setState(() {
           item.isLoading = true;
         });
-        await shell.run(
-            '.\\youtube-dl --cookies ${item.type.cookieFile} -o $videoOutput \'${item.link}\''
-                .crossPlatformCommand);
+        final cmd = '.\\youtube-dl '
+            '--cookies ${item.type.cookieFile} '
+            '-f \'(bestvideo'
+            '[height=${item.selectedResolutions.height}]'
+            '[ext=$DEFAULT_VIDEO_EXTENSION]+'
+            'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
+            '/best[height=${item.selectedResolutions.height}])\''
+            '--merge-output-format $DEFAULT_VIDEO_EXTENSION '
+            '-o $videoOutput \'${item.link}\'';
+        log(cmd);
+        await shell.run(cmd.crossPlatformCommand);
       }
     } on ShellException catch (e) {
       // We might get a shell exception
