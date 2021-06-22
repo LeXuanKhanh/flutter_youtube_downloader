@@ -51,6 +51,13 @@ class _MyHomePageState extends State<MyHomePage> {
   String videoLocation = '';
   String ffmpegVersion = '';
 
+  bool get isCheckingComplete {
+    return youtubeVersion.isNotEmpty &&
+        ffmpegVersion.isNotEmpty &&
+        youtubeVersion != 'checking version' &&
+        ffmpegVersion != 'checking version';
+  }
+
   @override
   void initState() {
     // TODO: implement initState
@@ -241,6 +248,10 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void addToQueue() async {
+    if (!isCheckingComplete) {
+      return;
+    }
+
     if (_inputController.text.isEmpty) {
       return;
     }
@@ -271,7 +282,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void checkYoutubeDL() async {
     setState(() {
-      youtubeVersion = 'Checking version';
+      youtubeVersion = 'checking version';
     });
     final result = await shell
         .run('.\\youtube-dl --version'.crossPlatformCommand)
@@ -295,7 +306,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void checkFFMPEG() async {
     setState(() {
-      ffmpegVersion = 'Checking version';
+      ffmpegVersion = 'checking version';
     });
     final result = await shell
         .run('.\\ffmpeg -version'.crossPlatformCommand)
