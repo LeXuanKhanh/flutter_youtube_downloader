@@ -156,7 +156,7 @@ class _MyHomePageState extends State<MyHomePage> {
             '[ext=$DEFAULT_VIDEO_EXTENSION]+'
             'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
             '/best[height<=${item.selectedResolutions.height}])\''
-            '--merge-output-format $DEFAULT_VIDEO_EXTENSION '
+            // '--merge-output-format $DEFAULT_VIDEO_EXTENSION '
             '-o $videoOutput \'${item.link}\'';
         log(cmd);
         await shell.run(cmd.crossPlatformCommand);
@@ -173,7 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
     for (var item in videoList) {
       final newController = ShellLinesController();
       final newShell = createShell(controller: newController);
-      controller.stream.listen((event) {
+      newController.stream.listen((event) {
         //log(event);
 
         if (currentDownloadVideoId == null) {
@@ -210,9 +210,17 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       });
 
-      await newShell.run(
-          '.\\youtube-dl --cookies ${item.type.cookieFile} -o $videoOutput \'${item.link}\''
-              .crossPlatformCommand);
+      final cmd = '.\\youtube-dl '
+          '--cookies ${item.type.cookieFile} '
+          '-f \'(bestvideo'
+          '[height=${item.selectedResolutions.height}]'
+          '[ext=$DEFAULT_VIDEO_EXTENSION]+'
+          'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
+          '/best[height<=${item.selectedResolutions.height}])\''
+      // '--merge-output-format $DEFAULT_VIDEO_EXTENSION '
+          '-o $videoOutput \'${item.link}\'';
+      log(cmd);
+      await newShell.run(cmd.crossPlatformCommand);
     }
   }
 
