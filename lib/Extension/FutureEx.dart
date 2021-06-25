@@ -10,6 +10,7 @@ extension FutureEx<T> on Future<T> {
       if (logError) {
         log('Future get error on ');
         log(e.toString());
+        log(stacktrace.toString());
       }
       return FutureResult<T>(value: null, error: e, stackTrace: stacktrace);
     }
