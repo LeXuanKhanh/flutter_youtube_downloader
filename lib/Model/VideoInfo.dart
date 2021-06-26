@@ -1,6 +1,8 @@
 // get only info which to display in order to reduce latency
 import 'package:flutter_youtube_downloader/Model/VideoFormat.dart';
 import 'package:json_annotation/json_annotation.dart';
+import 'package:process_run/shell.dart';
+import 'dart:io';
 
 part 'VideoInfo.g.dart';
 
@@ -60,6 +62,9 @@ class VideoInfo {
   bool isLoading = false;
   @JsonKey(ignore: true)
   late VideoResolution selectedResolutions;
+  @JsonKey(ignore: true)
+  var newController = ShellLinesController();
+  late var newShell = createShell(controller: newController);
 
   VideoType get type {
     if (link.contains('facebook')) {
@@ -94,14 +99,6 @@ class VideoInfo {
     return videoFormatDescriptions;
   }
 
-  String _printDuration(Duration duration) {
-    String twoDigits(int n) => n.toString().padLeft(2, "0");
-    String digitHours = duration.inHours == 0 ? '' : '${duration.inHours}:';
-    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
-    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
-    return "$digitHours$twoDigitMinutes:$twoDigitSeconds";
-  }
-
   VideoInfo({
     required this.link,
     required this.title,
@@ -111,6 +108,33 @@ class VideoInfo {
     this.formats = const [],
   }) {
     selectedResolutions = availableResolutions.first;
+  }
+
+  String _printDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, "0");
+    String digitHours = duration.inHours == 0 ? '' : '${duration.inHours}:';
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    return "$digitHours$twoDigitMinutes:$twoDigitSeconds";
+  }
+
+  Shell createShell({required ShellLinesController controller}) {
+    //Platform.isMacOS
+    late Shell shell;
+    if (Platform.isMacOS) {
+      final env = Platform.environment;
+      final dir = env['HOME']! + '/Documents';
+      shell =
+          Shell(stdout: controller.sink, verbose: false, workingDirectory: dir);
+    }
+
+    if (Platform.isWindows) {
+      shell = Shell(stdout: controller.sink, verbose: false);
+    }
+
+    shell = Shell(stdout: controller.sink, verbose: false);
+
+    return shell;
   }
 
   factory VideoInfo.fromJson(Map<String, dynamic> json) => _$VideoInfoFromJson(json);

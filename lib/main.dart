@@ -171,71 +171,75 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void downloadV2() async {
     for (var item in videoList) {
-      final newController = ShellLinesController();
-      final newShell = createShell(controller: newController);
-      newController.stream.listen((event) {
-        //log(event);
-
-        if (currentDownloadVideoId == null) {
-          return;
-        }
-
-        // [download] <percent>% of <size>MiB at <currentTime>
-        // [download] <percent>% of <size>MiB in <currentTime>
-        // [download] <percent>% of <size>MiB
-        if (event.contains('[download]') &&
-            event.contains('of') &&
-            event.contains('%')) {
-          String? percent;
-          try {
-            percent = event
-                .split(' ')
-                .firstWhere((element) => element.contains('%'))
-                .split('%')
-                .first;
-            item = videoList
-                .firstWhere((element) => element.id == currentDownloadVideoId);
-          } catch (e) {}
-
-          // log(percent);
-          if (percent != null) {
-            final percentNotNull = percent;
-            setState(() {
-              item.downloadPercentage = double.parse(percentNotNull);
-              if (double.parse(percentNotNull) == 100) {
-                item.isLoading = false;
-              }
-            });
-          }
-        }
-      });
-
-      final cmd = '.\\youtube-dl '
-          '--cookies ${item.type.cookieFile} '
-          '-f \'(bestvideo'
-          '[height=${item.selectedResolutions.height}]'
-          '[ext=$DEFAULT_VIDEO_EXTENSION]+'
-          'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
-          '/best[height<=${item.selectedResolutions.height}])\''
-      // '--merge-output-format $DEFAULT_VIDEO_EXTENSION '
-          '-o $videoOutput \'${item.link}\'';
-      log(cmd);
-      await newShell.run(cmd.crossPlatformCommand);
+      downloadVideoInfo(item);
     }
+  }
+
+  void downloadVideoInfo(VideoInfo item) async {
+    item.downloadPercentage = 0;
+    setState(() {
+      item.isLoading = true;
+    });
+
+    final newController = ShellLinesController();
+    final newShell = createShell(controller: newController);
+    newController.stream.listen((event) {
+      log(event);
+
+      // [download] <percent>% of <size>MiB at <currentTime>
+      // [download] <percent>% of <size>MiB in <currentTime>
+      // [download] <percent>% of <size>MiB
+      if (event.contains('[download]') &&
+          event.contains('of') &&
+          event.contains('%')) {
+        String? percent;
+        try {
+          percent = event
+              .split(' ')
+              .firstWhere((element) => element.contains('%'))
+              .split('%')
+              .first;
+        } catch (e) {}
+
+        // log(percent);
+        if (percent != null) {
+          final percentNotNull = percent;
+          setState(() {
+            item.downloadPercentage = double.parse(percentNotNull);
+            if (double.parse(percentNotNull) == 100) {
+              item.isLoading = false;
+            }
+          });
+        }
+      }
+    });
+
+    final cmd = '.\\youtube-dl '
+        '--cookies ${item.type.cookieFile} '
+        '-f \'(bestvideo'
+        '[height=${item.selectedResolutions.height}]'
+        '[ext=$DEFAULT_VIDEO_EXTENSION]+'
+        'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
+        '/best[height<=${item.selectedResolutions.height}])\''
+    // '--merge-output-format $DEFAULT_VIDEO_EXTENSION '
+        '-o $videoOutput \'${item.link}\'';
+    log(cmd);
+    await newShell.run(cmd.crossPlatformCommand);
   }
 
   Shell createShell({required ShellLinesController controller}) {
     //Platform.isMacOS
-    final env = Platform.environment;
-    final dir = env['HOME']! + '/Documents';
-    var shell =
-        Shell(stdout: controller.sink, verbose: false, workingDirectory: dir);
-
-    if (Platform.isWindows) {
-      shell = Shell(stdout: controller.sink, verbose: false);
+    if (Platform.isMacOS) {
+      final env = Platform.environment;
+      final dir = env['HOME']! + '/Documents';
+      return Shell(stdout: controller.sink, verbose: false, workingDirectory: dir);
     }
 
-    return shell;
+    if (Platform.isWindows) {
+      return Shell(stdout: controller.sink, verbose: false);
+    }
+
+    return Shell(stdout: controller.sink, verbose: false);
   }
 
   void showSnackBar(String text) {
@@ -564,7 +568,7 @@ class _MyHomePageState extends State<MyHomePage> {
               height: 44,
               child: ElevatedButton(
                 child: Text('Download'),
-                onPressed: download,
+                onPressed: downloadV2,
               ),
             ),
             SizedBox(height: 16),
