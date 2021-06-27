@@ -47,15 +47,21 @@ class _MyHomePageState extends State<MyHomePage> {
   late Shell shell;
   var isLoading = false;
   String? currentDownloadVideoId;
-  String youtubeVersion = '';
+  String youtubeVersion = 'checking version';
   String videoLocation = '';
-  String ffmpegVersion = '';
+  String ffmpegVersion = 'checking version';
 
   bool get isCheckingComplete {
     return youtubeVersion.isNotEmpty &&
         ffmpegVersion.isNotEmpty &&
         youtubeVersion != 'checking version' &&
         ffmpegVersion != 'checking version';
+  }
+  
+  bool get isCheckingValid {
+    return isCheckingComplete &&
+        !youtubeVersion.contains('can\'t check the version of') &&
+        !ffmpegVersion.contains('can\'t check the version of');
   }
 
   @override
@@ -176,15 +182,26 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void downloadVideoInfo(VideoInfo item) async {
-    item.downloadPercentage = 0;
     setState(() {
-      item.isLoading = true;
+      item.startDownload();
     });
 
     final newController = ShellLinesController();
     final newShell = createShell(controller: newController);
     newController.stream.listen((event) {
       log(event);
+
+      if (event.contains('has already been downloaded and merged')) {
+        setState(() {
+          item.finishDownload();
+        });
+      }
+
+      if (item.processingState.init(value: event) != VideoProcessingState.unknown) {
+        setState(() {
+          item.processingState = item.processingState.init(value: event);
+        });
+      }
 
       // [download] <percent>% of <size>MiB at <currentTime>
       // [download] <percent>% of <size>MiB in <currentTime>
@@ -215,16 +232,24 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     final cmd = '.\\youtube-dl '
+        '--no-warnings '
         '--cookies ${item.type.cookieFile} '
-        '-f \'(bestvideo'
-        '[height=${item.selectedResolutions.height}]'
-        '[ext=$DEFAULT_VIDEO_EXTENSION]+'
-        'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
-        '/best[height<=${item.selectedResolutions.height}])\''
-    // '--merge-output-format $DEFAULT_VIDEO_EXTENSION '
+        '-f '
+        '\'bestvideo[height=${item.selectedResolutions.height}]''[ext=$DEFAULT_VIDEO_EXTENSION]+''bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
+        '/bestvideo[height<=${item.selectedResolutions.height}]+bestaudio'
+        '/best\' '
         '-o $videoOutput \'${item.link}\'';
     log(cmd);
-    await newShell.run(cmd.crossPlatformCommand);
+    final result = await newShell.run(cmd.crossPlatformCommand).toResult(logError: true);
+    if (result.isError(onError: (error, stackTrace) {
+      final title = "error on downloading video";
+      setState(() {
+        youtubeVersion = title;
+      });
+      showSnackBar(title + '\n' + error);
+    })) {
+      return;
+    }
   }
 
   Shell createShell({required ShellLinesController controller}) {
@@ -279,6 +304,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // have error
     if (videoInfo.value == null) {
+      showSnackBar('Error on getting video information: \n ${videoInfo.error.toString()} ${videoInfo.stackTrace.toString()}');
       return;
     }
     setState(() {
@@ -301,7 +327,7 @@ class _MyHomePageState extends State<MyHomePage> {
         .toResult();
 
     if (result.isError(onError: (error, stackTrace) {
-      final title = "Can't check the version of youtube-dl";
+      final title = "can't check the version of youtube-dl";
       setState(() {
         youtubeVersion = title;
       });
@@ -325,7 +351,7 @@ class _MyHomePageState extends State<MyHomePage> {
         .toResult();
 
     if (result.isError(onError: (error, stackTrace) {
-      final errorTitle = "Can't check the version of ffmpeg";
+      final errorTitle = "can't check the version of ffmpeg";
       setState(() {
         ffmpegVersion = errorTitle;
       });
@@ -343,12 +369,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<VideoInfo?> getVideoInfoFrom({required String link}) async {
     final type = VideoType.other.fromLinkString(link: link);
+    final cmd = '.\\youtube-dl '
+        '--no-warnings '
+        '--cookies ${type.cookieFile} '
+        '--dump-single-json \'$link\''.crossPlatformCommand;
     final result = await shell
-        .run(
-            '.\\youtube-dl --cookies ${type.cookieFile} --dump-single-json \'$link\''
-                .crossPlatformCommand)
-        .toResult(logError: false);
-
+        .run(cmd)
+        .toResult(logError: true);
+    log('command $cmd');
     if (result.isError(onError: (error, stackTrace) {
       showSnackBar('Error on getting video information:' + '\n' + error);
     })) {
@@ -367,7 +395,15 @@ class _MyHomePageState extends State<MyHomePage> {
       return null;
     }
 
-    final videoInfo = VideoInfo.fromJson(json);
+    VideoInfo? videoInfo;
+    if ((type == VideoType.facebook) &&
+        (json['entries'] != null && json['entries'] is List<dynamic>)) {
+      final entries = json['entries'] as List<dynamic>;
+      videoInfo = VideoInfo.fromJson(entries.first as Map<String, dynamic>);
+    } else {
+      videoInfo = VideoInfo.fromJson(json);
+    }
+
     log(videoInfo.availableResolutions.toString());
     return videoInfo;
   }
@@ -468,14 +504,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
   String get videoOutput {
     if (Platform.isMacOS) {
-      return '''\'$videoLocation/%(title)s.%(ext)s\'''';
+      return '''\'$videoLocation/%(title)s_%(width)s_x_%(height)s.%(ext)s\'''';
     }
 
     if (Platform.isWindows) {
-      return '\'$VIDEO_FOLDER_NAME/%(title)s.%(ext)s\'';
+      return '\'$VIDEO_FOLDER_NAME/%(title)s_%(width)s_x_%(height)s.%(ext)s\'';
     }
 
-    return '\'$VIDEO_FOLDER_NAME/%(title)s.%(ext)s\'';
+    return '\'$VIDEO_FOLDER_NAME/%(title)s_%(width)s_x_%(height)s.%(ext)s\'';
   }
 
   @override
@@ -542,6 +578,10 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
+            SizedBox(height: 8),
+            isCheckingComplete && !isCheckingValid
+                ? Text('The app must have both youtube-dl and ffmpeg installed to work, please run check again')
+                : SizedBox(),
             SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
@@ -611,7 +651,6 @@ extension _FutureProcessResult on FutureResult<List<ProcessResult>> {
   bool isError({required Function(String, StackTrace?) onError}) {
     if (this.value == null) {
       if (this.error != null) {
-        log('check youtube error');
         log((this.error as ShellException).message);
         final error = (this.error as ShellException).toError ??
             (this.error as ShellException).message;
@@ -619,7 +658,7 @@ extension _FutureProcessResult on FutureResult<List<ProcessResult>> {
         onError(error, stackTrace);
         //showSnackBar(title + '\n' + error);
         log((this.error as ShellException).toError.toString());
-        log(this.stackTrace.toString());
+        log(StackTrace.current.toString());
         return true;
       }
     }
@@ -628,9 +667,8 @@ extension _FutureProcessResult on FutureResult<List<ProcessResult>> {
     if (value.errText.isNotEmpty) {
       final error = this.value!.errText;
       onError(error, stackTrace);
-
-      //showSnackBar(title + '\n' + error);
       log(error);
+      log(StackTrace.current.toString());
       return true;
     }
 
@@ -649,12 +687,12 @@ extension StringEx on String {
     }
 
     if (Platform.isMacOS) {
-      if (this.contains('youtube-dl')) {
-        return '/usr/local/bin/' + this.substring(2);
-        //return this.substring(2); // work around
+      if (this.contains('youtube-dl') || (this.contains('ffmpeg'))) {
+        //return '/usr/local/bin/' + this.substring(2);
+        return 'zsh -c "${this.substring(2)}"';
       }
 
-      return this;
+      return 'zsh -c "${this}"';
     }
 
     return this;

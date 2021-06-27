@@ -1,4 +1,3 @@
-import 'package:flutter_youtube_downloader/Extension/ListEx.dart';
 import 'package:json_annotation/json_annotation.dart';
 
 part 'VideoFormat.g.dart';
@@ -103,7 +102,7 @@ extension ExVideoFormatDetailType on VideoFormatType {
 
   //if use init use FormatDetailType.init
   VideoFormatType customInit({required String value}) {
-    if (value.contains(RegExp(r'[0-9]'))) {
+    if (value.contains(RegExp(r'[0-9]')) || (value.contains('video'))) {
       return VideoFormatType.video;
     }
     return VideoFormatType.audio;

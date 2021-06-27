@@ -6,6 +6,8 @@ import 'dart:io';
 
 part 'VideoInfo.g.dart';
 
+// run this command after modify
+// flutter pub run build_runner build
 enum VideoType {
   facebook,
   youtube,
@@ -41,7 +43,7 @@ extension VideoTypeEx on VideoType {
 
 }
 
-@JsonSerializable(fieldRename: FieldRename.snake, explicitToJson: true)
+@JsonSerializable(fieldRename: FieldRename.snake, explicitToJson: true, includeIfNull: true, ignoreUnannotated: true)
 class VideoInfo {
   @JsonKey(name: 'webpage_url', defaultValue: '')
   String link;
@@ -52,17 +54,15 @@ class VideoInfo {
   @JsonKey(name: 'display_id', defaultValue: '')
   String id;
   @JsonKey(name: 'duration', defaultValue: 0)
-  int durationInSeconds;
+  double durationInSeconds;
   @JsonKey(defaultValue: [])
   List<VideoFormat> formats;
 
-  @JsonKey(ignore: true)
+  VideoProcessingState processingState = VideoProcessingState.start;
   double downloadPercentage = 0;
-  @JsonKey(ignore: true)
   bool isLoading = false;
-  @JsonKey(ignore: true)
+
   late VideoResolution selectedResolutions;
-  @JsonKey(ignore: true)
   var newController = ShellLinesController();
   late var newShell = createShell(controller: newController);
 
@@ -79,7 +79,7 @@ class VideoInfo {
   }
   //HH:mm:sss
   String get duration {
-    final now = Duration(seconds: durationInSeconds);
+    final now = Duration(seconds: durationInSeconds.toInt());
     return _printDuration(now);
   }
   List<VideoFormat> get videoFormats {
@@ -93,9 +93,27 @@ class VideoInfo {
     return audioFormats;
   }
   List<VideoResolution> get availableResolutions {
-    final videoFormatDescriptions = videoFormats
-        .map((e) => VideoResolution(formatNote: e.formatNote, height: e.height))
-        .toSet().toList();
+
+    final List<VideoResolution> videoFormatDescriptions;
+
+    switch (type) {
+      case VideoType.youtube:
+        videoFormatDescriptions = videoFormats
+            .map((e) => VideoResolution(formatNote: e.formatNote, height: e.height))
+            .toSet().toList();
+        break;
+      case VideoType.facebook:
+        videoFormatDescriptions = videoFormats
+            .map((e) => VideoResolution(formatNote: '${e.height}p', height: e.height))
+            .toSet().toList();
+        break;
+      default:
+        videoFormatDescriptions = videoFormats
+            .map((e) => VideoResolution(formatNote: e.formatNote, height: e.height))
+            .toSet().toList();
+        break;
+    }
+
     return videoFormatDescriptions;
   }
 
@@ -137,6 +155,19 @@ class VideoInfo {
     return shell;
   }
 
+  void startDownload() {
+    processingState = VideoProcessingState.start;
+    downloadPercentage = 0;
+    isLoading = true;
+  }
+
+  // manual set download finishing state
+  void finishDownload() {
+    processingState = VideoProcessingState.done;
+    downloadPercentage = 100;
+    isLoading = false;
+  }
+
   factory VideoInfo.fromJson(Map<String, dynamic> json) => _$VideoInfoFromJson(json);
   Map<String, dynamic> toJson() => _$VideoInfoToJson(this);
 
@@ -172,4 +203,73 @@ class VideoResolution {
   // TODO: implement hashCode
   int get hashCode => height;
 
+}
+
+enum VideoProcessingState {
+  start,
+  downloadingVideo,
+  downloadAudio,
+  mergingOutput,
+  startConvertToDifferentFormat,
+  finishConvertToDifferentFormat,
+  done,
+  unknown,
+  init
+}
+
+extension VideoProcessingStateEx on VideoProcessingState {
+
+  // can init depend on old state
+  VideoProcessingState init({required String value}){
+    if (value.contains('Destination:')) {
+      
+      // if state is downloading video then the next state is download audio
+      if (this == VideoProcessingState.downloadingVideo) {
+        return VideoProcessingState.downloadAudio;
+      } else {
+        return VideoProcessingState.downloadingVideo;
+      }
+      
+    }
+    
+    if (value.contains('Merging formats into')) {
+      return VideoProcessingState.mergingOutput;
+    }
+    
+    if (value.contains('Converting video')) {
+      return VideoProcessingState.startConvertToDifferentFormat;
+    }
+
+    if (value.contains('Deleting original file')) {
+      if (this == VideoProcessingState.finishConvertToDifferentFormat) {
+        return VideoProcessingState.done;
+      } else {
+        return VideoProcessingState.finishConvertToDifferentFormat;
+      }
+    }
+
+    return VideoProcessingState.unknown;
+
+  }
+  
+  String get description {
+    switch (this) {
+      case VideoProcessingState.start:
+        return '';
+      case VideoProcessingState.downloadingVideo:
+        return 'downloading video';
+      case VideoProcessingState.downloadAudio:
+        return 'download audio';
+      case VideoProcessingState.mergingOutput:
+        return 'merging video and audio';
+      case VideoProcessingState.startConvertToDifferentFormat:
+        return 'converting to supported format';
+      case VideoProcessingState.finishConvertToDifferentFormat:
+        return '';
+      case VideoProcessingState.done:
+        return '';
+      default:
+        return '';
+    }
+  }
 }

@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import '../Model/VideoInfo.dart';
 
@@ -47,6 +49,11 @@ class VideoInfoCell extends StatelessWidget {
               : IconButton(
                   icon: Icon(Icons.close), onPressed: this.onRemoveButtonTap),
         ),
+        SizedBox(height: 4),
+        item.processingState.description.isNotEmpty
+            ? Text(item.processingState.description)
+            : SizedBox(),
+        SizedBox(height: 4),
         item.downloadPercentage != 0
             ? LinearProgressIndicator(value: item.downloadPercentage / 100)
             : SizedBox(),

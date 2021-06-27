@@ -11,7 +11,7 @@ VideoInfo _$VideoInfoFromJson(Map<String, dynamic> json) {
     link: json['webpage_url'] as String? ?? '',
     title: json['title'] as String? ?? '',
     thumbnail: json['thumbnail'] as String? ?? '',
-    durationInSeconds: json['duration'] as int? ?? 0,
+    durationInSeconds: (json['duration'] as num?)?.toDouble() ?? 0,
     id: json['display_id'] as String? ?? '',
     formats: (json['formats'] as List<dynamic>?)
             ?.map((e) => VideoFormat.fromJson(e as Map<String, dynamic>))
