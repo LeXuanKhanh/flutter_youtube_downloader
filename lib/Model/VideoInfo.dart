@@ -65,6 +65,8 @@ class VideoInfo {
   late VideoResolution selectedResolutions;
   var newController = ShellLinesController();
   late var newShell = createShell(controller: newController);
+  var isConvertToMp4 = false;
+  var isAudioOnly = false;
 
   VideoType get type {
     if (link.contains('facebook')) {
@@ -155,10 +157,10 @@ class VideoInfo {
     return shell;
   }
 
-  void startDownload() {
+  void start() {
     processingState = VideoProcessingState.start;
     downloadPercentage = 0;
-    isLoading = true;
+    isLoading = false;
   }
 
   // manual set download finishing state
@@ -221,31 +223,29 @@ extension VideoProcessingStateEx on VideoProcessingState {
 
   // can init depend on old state
   VideoProcessingState init({required String value}){
-    if (value.contains('Destination:')) {
-      
+    if (value.contains('Destination:') && (!value.contains('Converting video'))) {
       // if state is downloading video then the next state is download audio
       if (this == VideoProcessingState.downloadingVideo) {
         return VideoProcessingState.downloadAudio;
       } else {
         return VideoProcessingState.downloadingVideo;
       }
-      
     }
     
     if (value.contains('Merging formats into')) {
       return VideoProcessingState.mergingOutput;
     }
-    
+
+//    if (value.contains('Deleting original file')) {
+//      if (this == VideoProcessingState.finishConvertToDifferentFormat) {
+//        return VideoProcessingState.done;
+//      } else {
+//        return VideoProcessingState.finishConvertToDifferentFormat;
+//      }
+//    }
+
     if (value.contains('Converting video')) {
       return VideoProcessingState.startConvertToDifferentFormat;
-    }
-
-    if (value.contains('Deleting original file')) {
-      if (this == VideoProcessingState.finishConvertToDifferentFormat) {
-        return VideoProcessingState.done;
-      } else {
-        return VideoProcessingState.finishConvertToDifferentFormat;
-      }
     }
 
     return VideoProcessingState.unknown;

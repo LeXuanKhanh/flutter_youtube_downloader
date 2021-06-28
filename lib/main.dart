@@ -57,7 +57,7 @@ class _MyHomePageState extends State<MyHomePage> {
         youtubeVersion != 'checking version' &&
         ffmpegVersion != 'checking version';
   }
-  
+
   bool get isCheckingValid {
     return isCheckingComplete &&
         !youtubeVersion.contains('can\'t check the version of') &&
@@ -183,7 +183,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void downloadVideoInfo(VideoInfo item) async {
     setState(() {
-      item.startDownload();
+      item.start();
+      item.isLoading = true;
     });
 
     final newController = ShellLinesController();
@@ -197,7 +198,8 @@ class _MyHomePageState extends State<MyHomePage> {
         });
       }
 
-      if (item.processingState.init(value: event) != VideoProcessingState.unknown) {
+      if (item.processingState.init(value: event) !=
+          VideoProcessingState.unknown) {
         setState(() {
           item.processingState = item.processingState.init(value: event);
         });
@@ -231,22 +233,32 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     });
 
+    final isRecodeMp4 = item.isConvertToMp4 ? '--recode mp4 ' : '';
     final cmd = '.\\youtube-dl '
         '--no-warnings '
         '--cookies ${item.type.cookieFile} '
         '-f '
-        '\'bestvideo[height=${item.selectedResolutions.height}]''[ext=$DEFAULT_VIDEO_EXTENSION]+''bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
+        '\'bestvideo[height=${item.selectedResolutions.height}]'
+        '[ext=$DEFAULT_VIDEO_EXTENSION]+'
+        'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
         '/bestvideo[height<=${item.selectedResolutions.height}]+bestaudio'
         '/best\' '
+        '$isRecodeMp4'
         '-o $videoOutput \'${item.link}\'';
     log(cmd);
-    final result = await newShell.run(cmd.crossPlatformCommand).toResult(logError: true);
+    final result =
+        await newShell.run(cmd.crossPlatformCommand).toResult(logError: true);
+
+    setState(() {
+      item.processingState = VideoProcessingState.done;
+    });
+
     if (result.isError(onError: (error, stackTrace) {
       final title = "error on downloading video";
-      setState(() {
-        youtubeVersion = title;
-      });
       showSnackBar(title + '\n' + error);
+      setState(() {
+        item.start();
+      });
     })) {
       return;
     }
@@ -257,7 +269,8 @@ class _MyHomePageState extends State<MyHomePage> {
     if (Platform.isMacOS) {
       final env = Platform.environment;
       final dir = env['HOME']! + '/Documents';
-      return Shell(stdout: controller.sink, verbose: false, workingDirectory: dir);
+      return Shell(
+          stdout: controller.sink, verbose: false, workingDirectory: dir);
     }
 
     if (Platform.isWindows) {
@@ -304,7 +317,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // have error
     if (videoInfo.value == null) {
-      showSnackBar('Error on getting video information: \n ${videoInfo.error.toString()} ${videoInfo.stackTrace.toString()}');
+      showSnackBar(
+          'Error on getting video information: \n ${videoInfo.error.toString()} ${videoInfo.stackTrace.toString()}');
       return;
     }
     setState(() {
@@ -346,9 +360,8 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       ffmpegVersion = 'checking version';
     });
-    final result = await shell
-        .run('.\\ffmpeg -version'.crossPlatformCommand)
-        .toResult();
+    final result =
+        await shell.run('.\\ffmpeg -version'.crossPlatformCommand).toResult();
 
     if (result.isError(onError: (error, stackTrace) {
       final errorTitle = "can't check the version of ffmpeg";
@@ -360,7 +373,11 @@ class _MyHomePageState extends State<MyHomePage> {
       return;
     }
     final value = result.value!;
-    final version = value.outLines.first.replaceFirst('ffmpeg version', '').trim().split(' ').first;
+    final version = value.outLines.first
+        .replaceFirst('ffmpeg version', '')
+        .trim()
+        .split(' ')
+        .first;
     //print(version);
     setState(() {
       ffmpegVersion = version;
@@ -370,12 +387,11 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<VideoInfo?> getVideoInfoFrom({required String link}) async {
     final type = VideoType.other.fromLinkString(link: link);
     final cmd = '.\\youtube-dl '
-        '--no-warnings '
-        '--cookies ${type.cookieFile} '
-        '--dump-single-json \'$link\''.crossPlatformCommand;
-    final result = await shell
-        .run(cmd)
-        .toResult(logError: true);
+            '--no-warnings '
+            '--cookies ${type.cookieFile} '
+            '--dump-single-json \'$link\''
+        .crossPlatformCommand;
+    final result = await shell.run(cmd).toResult(logError: true);
     log('command $cmd');
     if (result.isError(onError: (error, stackTrace) {
       showSnackBar('Error on getting video information:' + '\n' + error);
@@ -580,7 +596,8 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             SizedBox(height: 8),
             isCheckingComplete && !isCheckingValid
-                ? Text('The app must have both youtube-dl and ffmpeg installed to work, please run check again')
+                ? Text(
+                    'The app must have both youtube-dl and ffmpeg installed to work, please run check again')
                 : SizedBox(),
             SizedBox(height: 8),
             SizedBox(
@@ -595,12 +612,26 @@ class _MyHomePageState extends State<MyHomePage> {
                   itemBuilder: (BuildContext context, int index) {
                     final item = videoList[index];
                     return VideoInfoCell(
-                        item: item,
-                        onRemoveButtonTap: () => removeFromQueue(index),
-                        onSelectResolutionDropDown: (resolution) =>
-                            setState(() {
-                              item.selectedResolutions = resolution;
-                            }));
+                      item: item,
+                      onRemoveButtonTap: () => removeFromQueue(index),
+                      onSelectResolutionDropDown: (resolution) => setState(() {
+                        item.selectedResolutions = resolution;
+                      }),
+                      onChangedIsAudioOnlyCheckBox: (bool) {
+                        if (item.isAudioOnly != bool) {
+                          setState(() {
+                            item.isAudioOnly = bool!;
+                          });
+                        }
+                      },
+                      onChangedIsConvertToMp4CheckBox: (bool) {
+                        if (item.isConvertToMp4 != bool) {
+                          setState(() {
+                            item.isConvertToMp4 = bool!;
+                          });
+                        }
+                      },
+                    );
                   }),
             ),
             SizedBox(
