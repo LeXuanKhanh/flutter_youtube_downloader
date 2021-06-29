@@ -233,17 +233,21 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     });
 
-    final isRecodeMp4 = item.isConvertToMp4 ? '--recode mp4 ' : '';
+
+    final video = '\'bestvideo[height=${item.selectedResolutions.height}]'
+        '[ext=$DEFAULT_VIDEO_EXTENSION]+'
+        'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
+        '/bestvideo[height<=${item.selectedResolutions.height}]+bestaudio'
+        '/best\' ';
+    final format = item.isAudioOnly ? 'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION] ' : video;
+    final recodeMp4 = (item.isConvertToMp4 && !item.isAudioOnly) ? '--recode mp4 ' : '';
+
     final cmd = '.\\youtube-dl '
         '--no-warnings '
         '--cookies ${item.type.cookieFile} '
         '-f '
-        '\'bestvideo[height=${item.selectedResolutions.height}]'
-        '[ext=$DEFAULT_VIDEO_EXTENSION]+'
-        'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
-        '/bestvideo[height<=${item.selectedResolutions.height}]+bestaudio'
-        '/best\' '
-        '$isRecodeMp4'
+        '$format'
+        '$recodeMp4'
         '-o $videoOutput \'${item.link}\'';
     log(cmd);
     final result =

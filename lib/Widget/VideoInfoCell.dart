@@ -91,7 +91,6 @@ class VideoInfoCell extends StatelessWidget {
               : IconButton(
                   icon: Icon(Icons.close), onPressed: this.onRemoveButtonTap),
         ),
-        SizedBox(height: 4),
         item.processingState.description.isNotEmpty
             ? Row(
                 children: [
