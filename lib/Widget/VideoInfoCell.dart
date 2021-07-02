@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:flutter/material.dart';
 import '../Model/VideoInfo.dart';
 
@@ -9,13 +7,15 @@ class VideoInfoCell extends StatelessWidget {
   final Function(VideoResolution) onSelectResolutionDropDown;
   final Function(bool?) onChangedIsConvertToMp4CheckBox;
   final Function(bool?) onChangedIsAudioOnlyCheckBox;
+  final Function()? onDownloadButtonTap;
 
   VideoInfoCell(
       {required this.item,
       required this.onRemoveButtonTap,
       required this.onSelectResolutionDropDown,
       required this.onChangedIsConvertToMp4CheckBox,
-      required this.onChangedIsAudioOnlyCheckBox});
+      required this.onChangedIsAudioOnlyCheckBox,
+      this.onDownloadButtonTap});
 
   List<DropdownMenuItem<VideoResolution>> get dropDownItems {
     return this
@@ -28,13 +28,26 @@ class VideoInfoCell extends StatelessWidget {
   }
 
   Widget indicator() {
-    switch (item.processingState) {
-      case VideoProcessingState.startConvertToDifferentFormat:
-        return LinearProgressIndicator();
-      case VideoProcessingState.mergingOutput:
-        return LinearProgressIndicator();
-      default:
-        return LinearProgressIndicator(value: item.downloadPercentage / 100);
+    if (item.isLoading) {
+      switch (item.processingState) {
+        case VideoProcessingState.startConvertToDifferentFormat:
+          return LinearProgressIndicator();
+        case VideoProcessingState.mergingOutput:
+          return LinearProgressIndicator();
+        case VideoProcessingState.start:
+          return LinearProgressIndicator();
+        default:
+          return LinearProgressIndicator(value: item.downloadPercentage / 100);
+      }
+    } else {
+      switch (item.processingState) {
+        case VideoProcessingState.start:
+          return SizedBox();
+        case VideoProcessingState.done:
+          return LinearProgressIndicator(value: item.downloadPercentage / 100);
+        default:
+          return LinearProgressIndicator();
+      }
     }
   }
 
@@ -44,6 +57,7 @@ class VideoInfoCell extends StatelessWidget {
     return Column(
       children: [
         ListTile(
+          tileColor: null,
           contentPadding: const EdgeInsets.symmetric(horizontal: 0),
           leading: item.thumbnail.isNotEmpty
               ? SizedBox(
@@ -56,11 +70,24 @@ class VideoInfoCell extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(item.title),
-                    DropdownButton<VideoResolution>(
-                      value: item.selectedResolutions,
-                      items: dropDownItems,
-                      onChanged: (value) => onSelectResolutionDropDown(value!),
-                    )]
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        DropdownButton<VideoResolution>(
+                          value: item.selectedResolutions,
+                          items: dropDownItems,
+                          onChanged: (value) => onSelectResolutionDropDown(value!),
+                        ),
+                        IconButton(
+                            color: Colors.black54,
+                            icon: item.isLoading
+                                ? Icon(Icons.file_download_off)
+                                : Icon(Icons.download),
+                            onPressed: this.onDownloadButtonTap),
+                      ],
+                    ),
+
+                  ]
               ),
           subtitle: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -75,7 +102,7 @@ class VideoInfoCell extends StatelessWidget {
                       Text('audio only'),
                     ],
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(),
                   Row(
                     children: [
                       Checkbox(value: item.isConvertToMp4, onChanged: onChangedIsConvertToMp4CheckBox),
@@ -86,10 +113,11 @@ class VideoInfoCell extends StatelessWidget {
               ),
             ],
           ),
-          trailing: item.isLoading
-              ? CircularProgressIndicator()
-              : IconButton(
-                  icon: Icon(Icons.close), onPressed: this.onRemoveButtonTap),
+          trailing: Container(
+            height: double.infinity,
+            child: IconButton(
+                icon: Icon(Icons.close), onPressed: this.onRemoveButtonTap),
+          ),
         ),
         item.processingState.description.isNotEmpty
             ? Row(
@@ -99,9 +127,7 @@ class VideoInfoCell extends StatelessWidget {
               )
             : SizedBox(),
         SizedBox(height: 4),
-        item.downloadPercentage != 0
-            ? indicator()
-            : SizedBox(),
+        indicator()
       ],
     );
   }

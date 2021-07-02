@@ -1,8 +1,13 @@
 // get only info which to display in order to reduce latency
+import 'dart:developer';
+
 import 'package:flutter_youtube_downloader/Model/VideoFormat.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:process_run/shell.dart';
 import 'dart:io';
+
+import '../GlobalVariables.dart';
+import 'package:flutter_youtube_downloader/Extension/StringEx.dart';
 
 part 'VideoInfo.g.dart';
 
@@ -63,8 +68,8 @@ class VideoInfo {
   bool isLoading = false;
 
   late VideoResolution selectedResolutions;
-  var newController = ShellLinesController();
-  late var newShell = createShell(controller: newController);
+  var shellLinesController = ShellLinesController();
+  late Shell shell = createShell(controller: shellLinesController);
   var isConvertToMp4 = false;
   var isAudioOnly = false;
 
@@ -140,34 +145,64 @@ class VideoInfo {
 
   Shell createShell({required ShellLinesController controller}) {
     //Platform.isMacOS
-    late Shell shell;
+    late Shell newShell;
     if (Platform.isMacOS) {
       final env = Platform.environment;
       final dir = env['HOME']! + '/Documents';
-      shell =
+      newShell =
           Shell(stdout: controller.sink, verbose: false, workingDirectory: dir);
     }
 
     if (Platform.isWindows) {
-      shell = Shell(stdout: controller.sink, verbose: false);
+      newShell = Shell(stdout: controller.sink, verbose: false);
     }
 
-    shell = Shell(stdout: controller.sink, verbose: false);
+    newShell = Shell(stdout: controller.sink, verbose: false);
 
-    return shell;
+    return newShell;
   }
 
-  void start() {
+  void initShell() {
+    shellLinesController = ShellLinesController();
+    shell = createShell(controller: shellLinesController);
+  }
+
+  void setStartState() {
     processingState = VideoProcessingState.start;
     downloadPercentage = 0;
     isLoading = false;
   }
 
   // manual set download finishing state
-  void finishDownload() {
+  void setFinishDownloadState() {
     processingState = VideoProcessingState.done;
     downloadPercentage = 100;
     isLoading = false;
+  }
+
+  void stopDownload() {
+    shell.kill(ProcessSignal.sigkill);
+    initShell();
+  }
+
+  Future<List<ProcessResult>> download({required String videoOutput}) {
+    final video = '\'bestvideo[height=${selectedResolutions.height}]'
+        '[ext=$DEFAULT_VIDEO_EXTENSION]+'
+        'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
+        '/bestvideo[height<=${selectedResolutions.height}]+bestaudio'
+        '/best\' ';
+    final format = isAudioOnly ? 'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION] ' : video;
+    final recodeMp4 = (isConvertToMp4 && !isAudioOnly) ? '--recode mp4 ' : '';
+
+    final cmd = '.\\youtube-dl '
+        '--no-warnings '
+        '--cookies ${type.cookieFile} '
+        '-f '
+        '$format'
+        '$recodeMp4'
+        '-o $videoOutput \'$link\'';
+    log(cmd);
+    return shell.run(cmd.crossPlatformCommand);
   }
 
   factory VideoInfo.fromJson(Map<String, dynamic> json) => _$VideoInfoFromJson(json);

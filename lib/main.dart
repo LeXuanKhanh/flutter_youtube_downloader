@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_youtube_downloader/Extension/FutureEx.dart';
+import 'package:flutter_youtube_downloader/Extension/StringEx.dart';
 import 'package:flutter_youtube_downloader/Widget/VideoInfoCell.dart';
 import 'Model/VideoInfo.dart';
 import 'package:process_run/shell.dart';
@@ -183,20 +184,19 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void downloadVideoInfo(VideoInfo item) async {
     setState(() {
-      item.start();
+      item.setStartState();
       item.isLoading = true;
     });
 
-    final newController = ShellLinesController();
-    final newShell = createShell(controller: newController);
-    newController.stream.listen((event) {
+    item.initShell();
+    final listener = item.shellLinesController.stream.listen((event) {
       log(event);
 
-      if (event.contains('has already been downloaded and merged')) {
-        setState(() {
-          item.finishDownload();
-        });
-      }
+//      if (event.contains('has already been downloaded and merged')) {
+//        setState(() {
+//          item.setFinishDownloadState();
+//        });
+//      }
 
       if (item.processingState.init(value: event) !=
           VideoProcessingState.unknown) {
@@ -226,46 +226,31 @@ class _MyHomePageState extends State<MyHomePage> {
           setState(() {
             item.downloadPercentage = double.parse(percentNotNull);
             if (double.parse(percentNotNull) == 100) {
-              item.isLoading = false;
+//              item.isLoading = false;
             }
           });
         }
       }
     });
 
-
-    final video = '\'bestvideo[height=${item.selectedResolutions.height}]'
-        '[ext=$DEFAULT_VIDEO_EXTENSION]+'
-        'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
-        '/bestvideo[height<=${item.selectedResolutions.height}]+bestaudio'
-        '/best\' ';
-    final format = item.isAudioOnly ? 'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION] ' : video;
-    final recodeMp4 = (item.isConvertToMp4 && !item.isAudioOnly) ? '--recode mp4 ' : '';
-
-    final cmd = '.\\youtube-dl '
-        '--no-warnings '
-        '--cookies ${item.type.cookieFile} '
-        '-f '
-        '$format'
-        '$recodeMp4'
-        '-o $videoOutput \'${item.link}\'';
-    log(cmd);
     final result =
-        await newShell.run(cmd.crossPlatformCommand).toResult(logError: true);
-
-    setState(() {
-      item.processingState = VideoProcessingState.done;
-    });
+        await item.download(videoOutput: videoOutput).toResult(logError: true);
+    listener.cancel();
+    item.shellLinesController.close();
 
     if (result.isError(onError: (error, stackTrace) {
       final title = "error on downloading video";
       showSnackBar(title + '\n' + error);
       setState(() {
-        item.start();
+        item.setStartState();
       });
     })) {
       return;
     }
+
+    setState(() {
+      item.setFinishDownloadState();
+    });
   }
 
   Shell createShell({required ShellLinesController controller}) {
@@ -635,6 +620,13 @@ class _MyHomePageState extends State<MyHomePage> {
                           });
                         }
                       },
+                      onDownloadButtonTap: () => setState(() {
+                        if (!item.isLoading) {
+                          downloadVideoInfo(item);
+                        } else {
+                          item.stopDownload();
+                        }
+                      }),
                     );
                   }),
             ),
@@ -642,7 +634,7 @@ class _MyHomePageState extends State<MyHomePage> {
               width: double.infinity,
               height: 44,
               child: ElevatedButton(
-                child: Text('Download'),
+                child: Text('Download All Videos'),
                 onPressed: downloadV2,
               ),
             ),
@@ -713,23 +705,4 @@ extension _FutureProcessResult on FutureResult<List<ProcessResult>> {
 
 extension ShellExceptionEx on ShellException {
   String? get toError => this.result?.stderr;
-}
-
-extension StringEx on String {
-  String get crossPlatformCommand {
-    if (Platform.isWindows) {
-      return 'powershell -c "${this}"';
-    }
-
-    if (Platform.isMacOS) {
-      if (this.contains('youtube-dl') || (this.contains('ffmpeg'))) {
-        //return '/usr/local/bin/' + this.substring(2);
-        return 'zsh -c "${this.substring(2)}"';
-      }
-
-      return 'zsh -c "${this}"';
-    }
-
-    return this;
-  }
 }
