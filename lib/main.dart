@@ -6,7 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_youtube_downloader/Extension/FutureEx.dart';
 import 'package:flutter_youtube_downloader/Extension/StringEx.dart';
+import 'package:flutter_youtube_downloader/Model/GithubReleaseData.dart';
+import 'package:flutter_youtube_downloader/Network/NetworkManager.dart';
 import 'package:flutter_youtube_downloader/Widget/VideoInfoCell.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'Model/VideoInfo.dart';
 import 'package:process_run/shell.dart';
 import 'package:path_provider/path_provider.dart';
@@ -51,6 +54,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String youtubeVersion = 'checking version';
   String videoLocation = '';
   String ffmpegVersion = 'checking version';
+  String versionStatusTitle = '';
 
   bool get isCheckingComplete {
     return youtubeVersion.isNotEmpty &&
@@ -124,6 +128,30 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     //checkYoutubeDL();
     getVideoLocation();
+    checkVersion();
+
+  }
+
+  void checkVersion() async {
+
+    PackageInfo packageInfo = await PackageInfo.fromPlatform();
+    final currentVersion =  packageInfo.versionNumber;
+    final result = await NetworkManager.shared.github.getReleaseDataList().toResult(logError: true);
+    if (result.error != null) {
+      showSnackBar("Error in checking new version: ${result.error.toString()}");
+      return;
+    }
+
+    final githubVersion = result.value!.first.versionNumber;
+
+    // print(currentVersion);
+    // print(githubVersion);
+
+    if (currentVersion.compareTo(githubVersion) < 0) {
+      setState(() {
+        versionStatusTitle = "There is a new version available, you can download it on the github link above";
+      });
+    }
   }
 
   @override
@@ -653,7 +681,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     child: Text('Github'),
                     onPressed: () => openLink(GITHUB_LINK))
               ],
-            )
+            ),
+            versionStatusTitle.isNotEmpty
+            ? Text(versionStatusTitle) : SizedBox()
           ],
         ),
       ),
@@ -705,4 +735,8 @@ extension _FutureProcessResult on FutureResult<List<ProcessResult>> {
 
 extension ShellExceptionEx on ShellException {
   String? get toError => this.result?.stderr;
+}
+
+extension PackageInfoEx on PackageInfo {
+   VersionNumber get versionNumber => VersionNumber.fromString(string: version);
 }
