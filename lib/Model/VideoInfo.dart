@@ -7,7 +7,9 @@ import 'package:process_run/shell.dart';
 import 'dart:io';
 
 import '../GlobalVariables.dart';
-import 'package:flutter_youtube_downloader/Extension/StringEx.dart';
+import '../Extension/StringEx.dart';
+import '../Extension/FutureEx.dart';
+import '../Extension/ListEx.dart';
 
 part 'VideoInfo.g.dart';
 
@@ -72,6 +74,7 @@ class VideoInfo {
   late Shell shell = createShell(controller: shellLinesController);
   var isConvertToMp4 = false;
   var isAudioOnly = false;
+  var currentDownloadPID = '';
 
   VideoType get type {
     if (link.contains('facebook')) {
@@ -135,6 +138,9 @@ class VideoInfo {
     selectedResolutions = availableResolutions.first;
   }
 
+  factory VideoInfo.fromJson(Map<String, dynamic> json) => _$VideoInfoFromJson(json);
+  Map<String, dynamic> toJson() => _$VideoInfoToJson(this);
+
   String _printDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, "0");
     String digitHours = duration.inHours == 0 ? '' : '${duration.inHours}:';
@@ -180,9 +186,48 @@ class VideoInfo {
     isLoading = false;
   }
 
-  void stopDownload() {
+  void stopDownload() async {
+//    if (Platform.isWindows) {
+//      final killShell = Shell();
+//      final cmd = 'taskkill /f /t /pid $currentPID ';
+//      log(cmd);
+//      await killShell.run(cmd.crossPlatformCommand).toResult(logError: true);
+//    } else {
+//      shell.kill(ProcessSignal.sigkill);
+//    }
+
+    if (Platform.isWindows) {
+      await killYouTubeDLOnWindows();
+    }
     shell.kill(ProcessSignal.sigkill);
     initShell();
+  }
+
+  Future killYouTubeDLOnWindows() async {
+    // find youtube-dl child process
+    final killShell = Shell();
+    final cmd = 'wmic process where (\'ParentProcessId=$currentDownloadPID\') get Caption,ProcessId';
+    log(cmd.crossPlatformCommand);
+    final result = await killShell.run(cmd.crossPlatformCommand).toResult(logError: true);
+    final outlines = result.value!.outLines.map((e) => e.trim()).where((element) => element.isNotEmpty).toList();
+    print(outlines);
+    // if not found return empty
+    final youtubeDLPidInfo = outlines.firstWhere((element) => element.contains('youtube-dl.exe'), orElse: () => '');
+
+    if (youtubeDLPidInfo.isEmpty) {
+      return;
+    }
+
+    final youtubeDlPID = youtubeDLPidInfo
+        .split(' ')
+        .map((e) => e.trim())
+        .where((element) => element.isNotEmpty)
+        .toList()
+        .valueAt(index: 1);
+    log('youtube-dl pid $youtubeDlPID');
+    final killCmd = 'taskkill /f /pid $youtubeDlPID';
+    log(killCmd.crossPlatformCommand);
+    await killShell.run(killCmd.crossPlatformCommand).toResult(logError: true);
   }
 
   Future<List<ProcessResult>> download({required String videoOutput}) {
@@ -194,19 +239,19 @@ class VideoInfo {
     final format = isAudioOnly ? 'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION] ' : video;
     final recodeMp4 = (isConvertToMp4 && !isAudioOnly) ? '--recode mp4 ' : '';
 
-    final cmd = '.\\youtube-dl '
+    final pidCmd = 'echo (\'DownloadPID \' + \$PID)';
+    final downloadCmd = '.\\youtube-dl '
         '--no-warnings '
         '--cookies ${type.cookieFile} '
         '-f '
         '$format'
         '$recodeMp4'
         '-o $videoOutput \'$link\'';
-    log(cmd);
+
+    final cmd = '$pidCmd;$downloadCmd';
+    log(cmd.crossPlatformCommand);
     return shell.run(cmd.crossPlatformCommand);
   }
-
-  factory VideoInfo.fromJson(Map<String, dynamic> json) => _$VideoInfoFromJson(json);
-  Map<String, dynamic> toJson() => _$VideoInfoToJson(this);
 
 }
 

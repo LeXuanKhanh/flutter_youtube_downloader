@@ -13,11 +13,11 @@ class NetworkManager {
 
   Dio _initDio() {
     final dio = Dio();
-    dio.interceptors.add(PrettyDioLogger(
-      requestHeader: true,
-      requestBody: true,
-      responseBody: true,
-    ));
+    // dio.interceptors.add(PrettyDioLogger(
+    //   requestHeader: true,
+    //   requestBody: true,
+    //   responseBody: true,
+    // ));
     return dio;
   }
 

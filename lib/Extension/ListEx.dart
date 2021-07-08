@@ -6,7 +6,7 @@ extension ListEx<T> on List<T> {
     return null;
   }
 
-  T? tryFirst() {
+  T? get tryFirst {
     if (this.isEmpty) {
       return null;
     }
@@ -14,7 +14,7 @@ extension ListEx<T> on List<T> {
     return this.first;
   }
 
-  T? tryLast() {
+  T? get tryLast {
     if (this.isEmpty) {
       return null;
     }

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_youtube_downloader/Extension/FutureEx.dart';
 import 'package:flutter_youtube_downloader/Extension/StringEx.dart';
+import 'package:flutter_youtube_downloader/Extension/ListEx.dart';
 import 'package:flutter_youtube_downloader/Model/GithubReleaseData.dart';
 import 'package:flutter_youtube_downloader/Network/NetworkManager.dart';
 import 'package:flutter_youtube_downloader/Widget/VideoInfoCell.dart';
@@ -135,7 +136,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void checkVersion() async {
 
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    final currentVersion =  packageInfo.versionNumber;
+    final currentVersion = packageInfo.versionNumber;
     final result = await NetworkManager.shared.github.getReleaseDataList().toResult(logError: true);
     if (result.error != null) {
       showSnackBar("Error in checking new version: ${result.error.toString()}");
@@ -144,8 +145,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final githubVersion = result.value!.first.versionNumber;
 
-    // print(currentVersion);
-    // print(githubVersion);
+    print(packageInfo.version);
+    print(githubVersion);
 
     if (currentVersion.compareTo(githubVersion) < 0) {
       setState(() {
@@ -220,6 +221,11 @@ class _MyHomePageState extends State<MyHomePage> {
     final listener = item.shellLinesController.stream.listen((event) {
       log(event);
 
+      if (event.contains('DownloadPID')) {
+        item.currentDownloadPID = event.split(' ').valueAt(index: 1) ?? '';
+        print('got the pid: ${item.currentDownloadPID} ');
+      }
+
 //      if (event.contains('has already been downloaded and merged')) {
 //        setState(() {
 //          item.setFinishDownloadState();
@@ -268,7 +274,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (result.isError(onError: (error, stackTrace) {
       final title = "error on downloading video";
-      showSnackBar(title + '\n' + error);
+      if (error != "Killed by framework") {
+        showSnackBar(title + '\n' + error);
+      }
+
       setState(() {
         item.setStartState();
       });
