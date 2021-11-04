@@ -247,8 +247,14 @@ class VideoInfo {
         '$format'
         '$recodeMp4'
         '-o $videoOutput \'$link\'';
+    final String cmd;
 
-    final cmd = '$pidCmd;$downloadCmd';
+    if (Platform.isWindows) {
+      cmd = '$pidCmd;$downloadCmd';
+    } else {
+      cmd = '$downloadCmd';
+    }
+
     log(cmd.crossPlatformCommand);
     return shell.run(cmd.crossPlatformCommand);
   }
