@@ -36,7 +36,7 @@ The video location can't change by default, I will improve that in the future
 
 - Flutter: channel stable, 2.2.1
 - Visual Studio Community: 2019 16.8.4
-- Xcode 12.0.1 (12A7300)
+- Xcode 13.1 (13A1030d)
 - Android Studio Arctic Fox 2020.3.1 Patch 3
 
 ## About download private video:
