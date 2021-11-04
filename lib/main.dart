@@ -129,7 +129,7 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     //checkYoutubeDL();
     getVideoLocation();
-    checkVersion();
+    // checkVersion();
 
   }
 
