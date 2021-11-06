@@ -56,6 +56,7 @@ class _MyHomePageState extends State<MyHomePage> {
   String videoLocation = '';
   String ffmpegVersion = 'checking version';
   String versionStatusTitle = '';
+  String version = '';
 
   bool get isCheckingComplete {
     return youtubeVersion.isNotEmpty &&
@@ -127,9 +128,8 @@ class _MyHomePageState extends State<MyHomePage> {
       checkYoutubeDL();
       checkFFMPEG();
     });
-    //checkYoutubeDL();
     getVideoLocation();
-    // checkVersion();
+    checkVersion();
 
   }
 
@@ -137,6 +137,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     final currentVersion = packageInfo.versionNumber;
+
+    setState(() {
+      version = currentVersion.toString();
+    });
+
     final result = await NetworkManager.shared.github.getReleaseDataList().toResult(logError: true);
     if (result.error != null) {
       showSnackBar("Error in checking new version: ${result.error.toString()}");
@@ -680,7 +685,7 @@ class _MyHomePageState extends State<MyHomePage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('V1.2.0 -'),
+                Text('V$version -'),
                 TextButton(
                     style: ButtonStyle(
                       overlayColor:
