@@ -1,5 +1,9 @@
 name: flutter_youtube_downloader
-description: Flutter Youtube Downloader.
+description: A Video Downloader Writen In Flutter.
+#custom name for Windows
+windows_name: Flutter Youtube Downloader
+#macos name for Mac OS
+macos_name: Flutter Youtube Downloader
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `pub publish`. This is preferred for private packages.

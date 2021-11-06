@@ -90,7 +90,7 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.khanhlexuan" "\0"
-            VALUE "FileDescription", "Flutter Youtube Downloader" "\0"
+            VALUE "FileDescription", "A Video Downloader Writen In Flutter." "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "Flutter Youtube Downloader" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2021 com.khanhlexuan. All rights reserved." "\0"
