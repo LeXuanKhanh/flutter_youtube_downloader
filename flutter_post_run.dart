@@ -2,10 +2,14 @@ import 'dart:io';
 import 'package:yaml/yaml.dart';
 import 'package:tuple/tuple.dart';
 
-const windowRunnerRCPath = 'windows/runner/Runner.rc';
-const windowMainCppPath = 'windows/runner/main.cpp';
 const yamlPath = 'pubspec.yaml';
 
+const windowRunnerRCPath = 'windows/runner/Runner.rc';
+const windowMainCppPath = 'windows/runner/main.cpp';
+
+const appInfoXCConfigPath = 'macos/Runner/Configs/AppInfo.xcconfig';
+
+// remember to define windows_name, macos_name to specify display name on windows and macos
 // run script every time before run or build the project
 // or add add run this script in "before launch" in any run/ build configurations in Android Studio
 
@@ -20,18 +24,24 @@ void main() async {
 
   print(pubspec.toString());
 
+  // Windows
   print('update info in $windowRunnerRCPath');
   await setPubspecInfoToWindowsRunnerRC(pubspec);
 
   print('update info in $windowMainCppPath');
   await setPubspecInfoToWindowsMainCPP(pubspec);
 
-  print('flutter windows post process completed');
+  // Mac OS
+  print('update info in $appInfoXCConfigPath');
+  await setPubspecInfoToAppInfoXCConfig(pubspec);
+
+  print('flutter post process completed');
 }
 
 Future setPubspecInfoToWindowsMainCPP(PubspecInfo info) async {
   final file = File(windowMainCppPath);
   if (!await file.exists()) {
+    print('$windowMainCppPath doesn\'t exist');
     return;
   }
   // Read file
@@ -52,6 +62,7 @@ Future setPubspecInfoToWindowsMainCPP(PubspecInfo info) async {
 Future setPubspecInfoToWindowsRunnerRC(PubspecInfo info) async {
   final file = File(windowRunnerRCPath);
   if (!await file.exists()) {
+    print('$windowRunnerRCPath doesn\'t exist');
     return;
   }
   // Read file
@@ -99,14 +110,31 @@ Future setPubspecInfoToWindowsRunnerRC(PubspecInfo info) async {
     final lineStringAndIndex = getLastLineStringAndIndex(contentsAsLines, containString);
     final newLineString = newInfoStringFrom(lineStringAndIndex.item1, newValue);
     contentsAsLines[lineStringAndIndex.item2] = newLineString;
-    // print(newLineString);
   }
 
   final newContent = contentsAsLines.join('\n');
   // Write file
   await File(windowRunnerRCPath).writeAsString(newContent);
+}
 
+Future setPubspecInfoToAppInfoXCConfig(PubspecInfo info) async {
+  final file = File(appInfoXCConfigPath);
+  if (!await file.exists()) {
+    print('$appInfoXCConfigPath doesn\'t exist');
+    return;
+  }
+  // Read file
+  final contents = await file.readAsString();
+  final contentsAsLines = contents.split('\n');
 
+  // change product name in AppInfo.xcconfig
+  final productNameStringAndIndex = getLastLineStringAndIndex(contentsAsLines, 'PRODUCT_NAME');
+  final productName = productNameStringAndIndex.item1.split('=').last.trim();
+  final newLineString = productNameStringAndIndex.item1.replaceAll(productName, '${info.macOSName}');
+  contentsAsLines[productNameStringAndIndex.item2] = newLineString;
+
+  final newContent = contentsAsLines.join('\n');
+  await File(appInfoXCConfigPath).writeAsString(newContent);
 }
 
 Tuple2<String, int> getLastLineStringAndIndex(List<String> strings, matchString) {
