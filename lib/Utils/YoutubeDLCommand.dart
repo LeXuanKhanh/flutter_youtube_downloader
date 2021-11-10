@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:developer';
-
 import 'package:process_run/shell.dart';
 
 import 'package:flutter_youtube_downloader/Utils/DesktopCommand.dart';
@@ -9,7 +8,7 @@ import 'package:flutter_youtube_downloader/Model/VideoInfo.dart';
 import 'package:flutter_youtube_downloader/Extension/ProcessRunEx.dart';
 
 class YoutubeDLCommand extends DesktopCommand {
-  Future<String?> getVersion() async {
+  Future<String?> getVersion() {
     final cmd = 'youtube-dl --version'.crossPlatformCommandTest;
 
     return shell

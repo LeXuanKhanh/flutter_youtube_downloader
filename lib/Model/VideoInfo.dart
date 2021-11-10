@@ -1,6 +1,7 @@
 // get only info which to display in order to reduce latency
 import 'dart:developer';
 
+import 'package:flutter_youtube_downloader/Extension/ProcessRunEx.dart';
 import 'package:flutter_youtube_downloader/Model/VideoFormat.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:process_run/shell.dart';
@@ -150,22 +151,7 @@ class VideoInfo {
   }
 
   Shell createShell({required ShellLinesController controller}) {
-    //Platform.isMacOS
-    late Shell newShell;
-    if (Platform.isMacOS) {
-      final env = Platform.environment;
-      final dir = env['HOME']! + '/Documents';
-      newShell =
-          Shell(stdout: controller.sink, verbose: false, workingDirectory: dir);
-    }
-
-    if (Platform.isWindows) {
-      newShell = Shell(stdout: controller.sink, verbose: false);
-    }
-
-    newShell = Shell(stdout: controller.sink, verbose: false);
-
-    return newShell;
+    return customShell(controller: controller);
   }
 
   void initShell() {

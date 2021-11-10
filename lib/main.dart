@@ -272,7 +272,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final result = await YoutubeDLCommand()
         .getVersion()
-        .catchError((error) {
+        .onError((error, stackTrace) {
           final shellError = error as ShellException;
           log(shellError.toErrorString);
           log(StackTrace.current.toString());
@@ -301,7 +301,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     final result = await FFmpegCommand()
         .getVersion()
-        .catchError((error) {
+        .onError((error, stackTrace) {
       final shellError = error as ShellException;
       log(shellError.toErrorString);
       log(StackTrace.current.toString());

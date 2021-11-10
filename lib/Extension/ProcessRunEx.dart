@@ -7,14 +7,17 @@ import 'package:flutter_youtube_downloader/Model/FutureResult.dart';
 Shell customShell({ShellLinesController? controller}) {
   Shell shell = Shell();
   if (Platform.isMacOS) {
-    final env = Platform.environment;
-    final dir = env['HOME']! + '/Documents';
+    final envJson = {
+      'paths': ['/usr/local/bin', '/Users/macbook/Projects/']
+    };
+    final customEnv = ShellEnvironment.fromJson(envJson);
+    final platformEnv = Platform.environment;
+    final dir = platformEnv['HOME']! + '/Documents';
 
     if (controller == null) {
-      shell = Shell(verbose: false, workingDirectory: dir);
+      shell = Shell(verbose: false, workingDirectory: dir, environment: customEnv);
     } else {
-      shell =
-          Shell(stdout: controller.sink, verbose: false, workingDirectory: dir);
+      shell = Shell(stdout: controller.sink, verbose: false, workingDirectory: dir, environment: customEnv);
     }
   }
 
