@@ -7,7 +7,7 @@ import 'package:flutter_youtube_downloader/Extension/ProcessRunEx.dart';
 class FFmpegCommand extends DesktopCommand {
   Future<String?> getVersion() async {
 
-    final cmd = 'ffmpeg -version'.crossPlatformCommandTest;
+    final cmd = 'ffmpeg -version'.crossPlatformCommand;
 
     return shell.customRun(cmd).then((value) =>
         value?.outLines.first

@@ -15,7 +15,7 @@ class DesktopCommand {
       cmdOpenFolder = 'open';
     }
 
-    return shell.run('$cmdOpenFolder $folderPath'.crossPlatformCommandTest);
+    return shell.run('$cmdOpenFolder $folderPath'.crossPlatformCommand);
   }
 
   Future openLink(String link) async {
@@ -31,11 +31,11 @@ class DesktopCommand {
 
   Future createDirectory(String directoryName) async {
     return shell
-        .customRun('mkdir -p $directoryName'.crossPlatformCommandTest);
+        .customRun('mkdir -p $directoryName'.crossPlatformCommand);
   }
 
   Future<String?> getCurrentPath() async {
-    return shell.customRun('pwd'.crossPlatformCommandTest).then((value) {
+    return shell.customRun('pwd'.crossPlatformCommand).then((value) {
       if (Platform.isWindows) {
         return value?.outText.split('----').last.trim();
       }

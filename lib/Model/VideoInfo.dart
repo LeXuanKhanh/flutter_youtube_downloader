@@ -173,15 +173,6 @@ class VideoInfo {
   }
 
   void stopDownload() async {
-//    if (Platform.isWindows) {
-//      final killShell = Shell();
-//      final cmd = 'taskkill /f /t /pid $currentPID ';
-//      log(cmd);
-//      await killShell.run(cmd.crossPlatformCommand).toResult(logError: true);
-//    } else {
-//      shell.kill(ProcessSignal.sigkill);
-//    }
-
     if (Platform.isWindows) {
       await killYouTubeDLOnWindows();
     }
@@ -192,9 +183,9 @@ class VideoInfo {
   Future killYouTubeDLOnWindows() async {
     // find youtube-dl child process
     final killShell = Shell();
-    final cmd = 'wmic process where (\'ParentProcessId=$currentDownloadPID\') get Caption,ProcessId';
-    log(cmd.crossPlatformCommand);
-    final result = await killShell.run(cmd.crossPlatformCommand).toResult(logError: true);
+    final cmd = 'wmic process where (\'ParentProcessId=$currentDownloadPID\') get Caption,ProcessId'.crossPlatformCommand;
+    log(cmd);
+    final result = await killShell.run(cmd).toResult(logError: true);
     final outlines = result.value!.outLines.map((e) => e.trim()).where((element) => element.isNotEmpty).toList();
     print(outlines);
     // if not found return empty
@@ -211,9 +202,9 @@ class VideoInfo {
         .toList()
         .valueAt(index: 1);
     log('youtube-dl pid $youtubeDlPID');
-    final killCmd = 'taskkill /f /pid $youtubeDlPID';
-    log(killCmd.crossPlatformCommand);
-    await killShell.run(killCmd.crossPlatformCommand).toResult(logError: true);
+    final killCmd = 'taskkill /f /pid $youtubeDlPID'.crossPlatformCommand;
+    log(killCmd);
+    await killShell.run(killCmd).toResult(logError: true);
   }
 
   Future<List<ProcessResult>> download({required String videoOutput}) {
@@ -226,7 +217,7 @@ class VideoInfo {
     final recodeMp4 = (isConvertToMp4 && !isAudioOnly) ? '--recode mp4 ' : '';
 
     final pidCmd = 'echo (\'DownloadPID \' + \$PID)';
-    final downloadCmd = '.\\youtube-dl '
+    final downloadCmd = 'youtube-dl '
         '--no-warnings '
         '--cookies ${type.cookieFile} '
         '-f '

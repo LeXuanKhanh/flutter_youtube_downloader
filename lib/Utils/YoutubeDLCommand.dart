@@ -9,7 +9,7 @@ import 'package:flutter_youtube_downloader/Extension/ProcessRunEx.dart';
 
 class YoutubeDLCommand extends DesktopCommand {
   Future<String?> getVersion() {
-    final cmd = 'youtube-dl --version'.crossPlatformCommandTest;
+    final cmd = 'youtube-dl --version'.crossPlatformCommand;
 
     return shell
         .customRun(cmd)
@@ -25,7 +25,7 @@ class YoutubeDLCommand extends DesktopCommand {
         '--no-warnings '
         '--cookies ${type.cookieFile} '
         '--dump-single-json \'$link\''
-        .crossPlatformCommandTest;
+        .crossPlatformCommand;
 
     return shell.customRun(cmd).then((value) {
 
