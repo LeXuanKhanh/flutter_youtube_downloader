@@ -1,5 +1,5 @@
 import 'dart:developer';
-import 'package:flutter_youtube_downloader/FutureResult.dart';
+import 'package:flutter_youtube_downloader/Model/FutureResult.dart';
 
 extension FutureEx<T> on Future<T> {
   Future<FutureResult<T>> toResult({bool logError = false}) async {
@@ -8,7 +8,7 @@ extension FutureEx<T> on Future<T> {
       return FutureResult<T>(value: result, error: null, stackTrace: null);
     } catch (e, stacktrace) {
       if (logError) {
-        log('Future get error on ');
+        log('Future toResult $T get error');
         log(e.toString());
         log(stacktrace.toString());
       }

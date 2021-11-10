@@ -17,4 +17,22 @@ extension StringEx on String {
 
     return this;
   }
+
+  String get crossPlatformCommandTest {
+    if (Platform.isWindows) {
+      // local executables
+      if (this.startsWith('youtube-dl') || (this.startsWith('ffmpeg'))) {
+        return 'powershell -c ".\\${this}"';
+      }
+
+      return 'powershell -c "${this}"';
+    }
+
+    if (Platform.isMacOS) {
+      return 'zsh -c "${this}"';
+    }
+
+    return this;
+  }
+
 }
