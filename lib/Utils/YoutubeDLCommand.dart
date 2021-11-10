@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:developer';
+import 'dart:io';
 import 'package:process_run/shell.dart';
 
 import 'package:flutter_youtube_downloader/Utils/DesktopCommand.dart';
@@ -8,6 +9,9 @@ import 'package:flutter_youtube_downloader/Model/VideoInfo.dart';
 import 'package:flutter_youtube_downloader/Extension/ProcessRunEx.dart';
 
 class YoutubeDLCommand extends DesktopCommand {
+  var defaultVideoExt = 'mp4';
+  var defaultAudioExt = 'm4a';
+
   Future<String?> getVersion() {
     final cmd = 'youtube-dl --version'.crossPlatformCommand;
 
@@ -58,4 +62,39 @@ class YoutubeDLCommand extends DesktopCommand {
       return videoInfo;
     });
   }
+
+  ShellLinesController downloadVideo(VideoInfo videInfo, String outputPath) {
+    final shellLinesController = ShellLinesController();
+    shell = customShell(controller: shellLinesController);
+
+    final video = '\'bestvideo[height=${videInfo.selectedResolutions.height}]'
+        '[ext=$defaultVideoExt]+'
+        'bestaudio[ext=$defaultAudioExt]'
+        '/bestvideo[height<=${videInfo.selectedResolutions.height}]+bestaudio'
+        '/best\' ';
+    final format = videInfo.isAudioOnly ? 'bestaudio[ext=$defaultAudioExt] ' : video;
+    final recodeMp4 = (videInfo.isConvertToMp4 && !videInfo.isAudioOnly) ? '--recode mp4 ' : '';
+
+    final pidCmd = 'echo (\'DownloadPID \' + \$PID)';
+    final downloadCmd = 'youtube-dl '
+        '--no-warnings '
+        '--cookies ${videInfo.type.cookieFile} '
+        '-f '
+        '$format'
+        '$recodeMp4'
+        '-o $outputPath \'${videInfo.link}\'';
+    final String cmd;
+
+    if (Platform.isWindows) {
+      cmd = '$pidCmd;$downloadCmd';
+    } else {
+      cmd = '$downloadCmd';
+    }
+
+    log(cmd.crossPlatformCommand);
+    shell.run(cmd.crossPlatformCommand);
+
+    return shellLinesController;
+  }
+
 }
