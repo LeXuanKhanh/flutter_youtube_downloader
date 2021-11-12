@@ -23,7 +23,11 @@ Shell customShell({ShellLinesController? controller}) {
 
   // Windows, Linux
   if (Platform.isWindows) {
-    shell = Shell(verbose: false);
+    if (controller == null) {
+      shell = Shell(verbose: false);
+    } else {
+      shell = Shell(stdout: controller.sink, verbose: false);
+    }
   }
 
   return shell;

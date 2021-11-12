@@ -217,7 +217,7 @@ class VideoInfo {
     final recodeMp4 = (isConvertToMp4 && !isAudioOnly) ? '--recode mp4 ' : '';
 
     final pidCmd = 'echo (\'DownloadPID \' + \$PID)';
-    final downloadCmd = 'youtube-dl '
+    final downloadCmd = '.\\youtube-dl '
         '--no-warnings '
         '--cookies ${type.cookieFile} '
         '-f '
