@@ -13,11 +13,17 @@ You can download the app
 - Mac OS: [here](https://github.com/LeXuanKhanh/flutter_youtube_downloader/releases/download/1.3/flutter_youtube_downloader_macos_1.3.zip)
 
 ## Setup
-By default, the folder don't have additional `youtube-dl.exe`, in order for the app to work, you need to install youtube-dl.
+By default, the folder don't have additional `youtube-dl.exe`, in order for the app to work, you need to install `youtube-dl`.
 
 - Windows: download the `exe` file from [here](https://yt-dl.org/latest/youtube-dl.exe) and place it at the same location of the App
 
 - MacOS: you can install via brew with command `brew install youtube-dl`
+
+Since release 1.3, the app require additional FFmpeg executable to work, like `youtube-dl`, the folder don't have it `ffmpeg.exe`, in order for the app to work, you need to install `ffmpeg`.
+
+- Windows: download the `exe` file from https://www.gyan.dev/ffmpeg/builds/, recommander the stable release builds or you're too lazy just click [here](https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full-shared.7z) to download and place the `ffmpeg.exe` at the same location of the App (the exe file is in the bin folder of the zip folder)
+
+- MacOS: you can install via brew with command `brew install ffmpeg`
 
 ## Video Location
 The video location can't change by default, I will improve that in the future
