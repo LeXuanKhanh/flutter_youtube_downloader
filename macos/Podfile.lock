@@ -1,28 +1,29 @@
 PODS:
   - FlutterMacOS (1.0.0)
-  - package_info_plus_macos (0.0.1):
+  - package_info_plus (0.0.1):
     - FlutterMacOS
-  - path_provider_macos (0.0.1):
+  - path_provider_foundation (0.0.1):
+    - Flutter
     - FlutterMacOS
 
 DEPENDENCIES:
   - FlutterMacOS (from `Flutter/ephemeral`)
-  - package_info_plus_macos (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus_macos/macos`)
-  - path_provider_macos (from `Flutter/ephemeral/.symlinks/plugins/path_provider_macos/macos`)
+  - package_info_plus (from `Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos`)
+  - path_provider_foundation (from `Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin`)
 
 EXTERNAL SOURCES:
   FlutterMacOS:
     :path: Flutter/ephemeral
-  package_info_plus_macos:
-    :path: Flutter/ephemeral/.symlinks/plugins/package_info_plus_macos/macos
-  path_provider_macos:
-    :path: Flutter/ephemeral/.symlinks/plugins/path_provider_macos/macos
+  package_info_plus:
+    :path: Flutter/ephemeral/.symlinks/plugins/package_info_plus/macos
+  path_provider_foundation:
+    :path: Flutter/ephemeral/.symlinks/plugins/path_provider_foundation/darwin
 
 SPEC CHECKSUMS:
-  FlutterMacOS: 57701585bf7de1b3fc2bb61f6378d73bbdea8424
-  package_info_plus_macos: f010621b07802a241d96d01876d6705f15e77c1c
-  path_provider_macos: a0a3fd666cb7cd0448e936fb4abad4052961002b
+  FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
+  package_info_plus: 02d7a575e80f194102bef286361c6c326e4c29ce
+  path_provider_foundation: 3784922295ac71e43754bd15e0653ccfd36a147c
 
-PODFILE CHECKSUM: 6eac6b3292e5142cfc23bdeb71848a40ec51c14c
+PODFILE CHECKSUM: d9402433268df691c73bc8f6abea51e637720375
 
-COCOAPODS: 1.10.1
+COCOAPODS: 1.14.3

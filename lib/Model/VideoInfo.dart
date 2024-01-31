@@ -3,6 +3,7 @@ import 'dart:developer';
 
 import 'package:flutter_youtube_downloader/Extension/ProcessRunEx.dart';
 import 'package:flutter_youtube_downloader/Model/VideoFormat.dart';
+import 'package:flutter_youtube_downloader/Utils/CommonPath.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:process_run/shell.dart';
 import 'dart:io';
@@ -208,7 +209,8 @@ class VideoInfo {
   }
 
   Future<List<ProcessResult>> download({required String videoOutput}) {
-    final video = '\'bestvideo[height=${selectedResolutions.height}]'
+    final forceAVC = Platform.isMacOS ? '[vcodec^=avc]' : '';
+    final video = '\'bestvideo[height=${selectedResolutions.height}]$forceAVC'
         '[ext=$DEFAULT_VIDEO_EXTENSION]+'
         'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
         '/bestvideo[height<=${selectedResolutions.height}]+bestaudio'
@@ -217,9 +219,10 @@ class VideoInfo {
     final recodeMp4 = (isConvertToMp4 && !isAudioOnly) ? '--recode mp4 ' : '';
 
     final pidCmd = 'echo (\'DownloadPID \' + \$PID)';
-    final downloadCmd = '.\\youtube-dl '
+    final downloadCmd = '$youtubeDlPath '
         '--no-warnings '
         '--cookies ${type.cookieFile} '
+        '--ffmpeg-location \'$ffmpegPath\' '
         '-f '
         '$format'
         '$recodeMp4'

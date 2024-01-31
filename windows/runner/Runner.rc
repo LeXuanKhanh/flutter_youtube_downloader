@@ -92,10 +92,10 @@ BEGIN
             VALUE "CompanyName", "com.khanhlexuan" "\0"
             VALUE "FileDescription", "A Video Downloader Writen In Flutter." "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "Flutter Youtube Downloader" "\0"
+            VALUE "InternalName", "FlutterYoutubeDownloader" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2021 com.khanhlexuan. All rights reserved." "\0"
             VALUE "OriginalFilename", "flutter_youtube_downloader.exe" "\0"
-            VALUE "ProductName", "Flutter Youtube Downloader" "\0"
+            VALUE "ProductName", "FlutterYoutubeDownloader" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

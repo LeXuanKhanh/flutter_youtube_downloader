@@ -1,5 +1,8 @@
 import 'dart:developer';
 import 'dart:io';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_youtube_downloader/Extension/MapEx.dart';
+import 'package:flutter_youtube_downloader/Utils/CommonPath.dart';
 import 'package:process_run/shell.dart';
 
 import 'package:flutter_youtube_downloader/Model/FutureResult.dart';
@@ -15,9 +18,14 @@ Shell customShell({ShellLinesController? controller}) {
     final dir = platformEnv['HOME']! + '/Documents';
 
     if (controller == null) {
-      shell = Shell(verbose: false, workingDirectory: dir, environment: customEnv);
+      shell =
+          Shell(verbose: false, workingDirectory: dir, environment: customEnv);
     } else {
-      shell = Shell(stdout: controller.sink, verbose: false, workingDirectory: dir, environment: customEnv);
+      shell = Shell(
+          stdout: controller.sink,
+          verbose: false,
+          workingDirectory: dir,
+          environment: customEnv);
     }
   }
 
@@ -83,7 +91,6 @@ extension ShellExceptionEx on ShellException {
 extension ShellEx on Shell {
   Future<List<ProcessResult>?> customRun(String script,
       {void Function(Process process)? onProcess}) async {
-
     final result = await this.run(script, onProcess: onProcess);
 
     if (result.errText.isNotEmpty) {
@@ -95,5 +102,4 @@ extension ShellEx on Shell {
 
     return result;
   }
-
 }

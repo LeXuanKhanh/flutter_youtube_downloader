@@ -1,9 +1,9 @@
 name: flutter_youtube_downloader
 description: A Video Downloader Writen In Flutter.
 #custom name for Windows
-windows_name: Flutter Youtube Downloader
+windows_name: FlutterYoutubeDownloader
 #macos name for Mac OS
-macos_name: Flutter Youtube Downloader
+macos_name: FlutterYoutubeDownloader
 
 # The following line prevents the package from being accidentally published to
 # pub.dev using `pub publish`. This is preferred for private packages.
@@ -32,15 +32,15 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.3
-  process_run: ^0.12.1
+  process_run: 0.14.1+3
   pretty_json: ^2.0.0
   path_provider: ^2.0.2
-  json_serializable: ^4.1.3
-  dio: ^4.0.0
+  json_serializable: ^6.7.1
+  dio: ^5.4.0
   retrofit: any
   logger: any
   pretty_dio_logger: ^1.1.1
-  package_info_plus: ^1.0.3
+  package_info_plus: ^4.2.0
 
 dev_dependencies:
   flutter_test:

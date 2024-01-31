@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
+import 'package:flutter_youtube_downloader/Extension/MapEx.dart';
+import 'package:flutter_youtube_downloader/Utils/CommonPath.dart';
 import 'package:process_run/shell.dart';
 
 import 'package:flutter_youtube_downloader/Utils/DesktopCommand.dart';
@@ -13,7 +15,7 @@ class YoutubeDLCommand extends DesktopCommand {
   var defaultAudioExt = 'm4a';
 
   Future<String?> getVersion() {
-    final cmd = 'youtube-dl --version'.crossPlatformCommand;
+    final cmd = '$youtubeDlPath --version'.crossPlatformCommand;
 
     return shell
         .customRun(cmd)
@@ -25,7 +27,7 @@ class YoutubeDLCommand extends DesktopCommand {
   Future<VideoInfo?> getVideoInfoFrom({required String link}) {
     final type = VideoType.other.fromLinkString(link: link);
 
-    final cmd = 'youtube-dl '
+    final cmd = '$youtubeDlPath '
         '--no-warnings '
         '--cookies ${type.cookieFile} '
         '--dump-single-json \'$link\''
@@ -54,8 +56,10 @@ class YoutubeDLCommand extends DesktopCommand {
           (json['entries'] != null && json['entries'] is List<dynamic>)) {
         final entries = json['entries'] as List<dynamic>;
         videoInfo = VideoInfo.fromJson(entries.first as Map<String, dynamic>);
+        log((entries.first as Map<String, dynamic>).toPrettyString);
       } else {
         videoInfo = VideoInfo.fromJson(json);
+        log(json.toPrettyString);
       }
 
       log(videoInfo.availableResolutions.toString());
@@ -76,7 +80,7 @@ class YoutubeDLCommand extends DesktopCommand {
     final recodeMp4 = (videInfo.isConvertToMp4 && !videInfo.isAudioOnly) ? '--recode mp4 ' : '';
 
     final pidCmd = 'echo (\'DownloadPID \' + \$PID)';
-    final downloadCmd = 'youtube-dl '
+    final downloadCmd = '$youtubeDlPath '
         '--no-warnings '
         '--cookies ${videInfo.type.cookieFile} '
         '-f '
