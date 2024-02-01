@@ -5,9 +5,8 @@ import 'package:flutter_youtube_downloader/Extension/ProcessRunEx.dart';
 import 'package:flutter_youtube_downloader/Extension/StringEx.dart';
 
 class DesktopCommand {
-  Shell shell = customShell();
-
-  Future openFolder(String folderPath) async {
+  static Future openFolder(String folderPath) async {
+    Shell shell = customShell();
     final String cmdOpenFolder;
     if (Platform.isWindows) {
       cmdOpenFolder = 'start';
@@ -18,7 +17,8 @@ class DesktopCommand {
     return shell.run('$cmdOpenFolder $folderPath'.crossPlatformCommand);
   }
 
-  Future openLink(String link) async {
+  static Future openLink(String link) async {
+    Shell shell = customShell();
     final String cmdOpenFolder;
     if (Platform.isWindows) {
       cmdOpenFolder = 'explorer';
@@ -29,12 +29,14 @@ class DesktopCommand {
     return shell.run('$cmdOpenFolder $link');
   }
 
-  Future createDirectory(String directoryName) async {
+  static Future createDirectory(String directoryName) async {
+    Shell shell = customShell();
     return shell
         .customRun('mkdir -p $directoryName'.crossPlatformCommand);
   }
 
-  Future<String?> getCurrentPath() async {
+  static Future<String?> getCurrentPath() async {
+    Shell shell = customShell();
     return shell.customRun('pwd'.crossPlatformCommand).then((value) {
       if (Platform.isWindows) {
         return value?.outText.split('----').last.trim();

@@ -4,6 +4,7 @@ import 'dart:developer';
 import 'package:flutter_youtube_downloader/Extension/ProcessRunEx.dart';
 import 'package:flutter_youtube_downloader/Model/VideoFormat.dart';
 import 'package:flutter_youtube_downloader/Utils/CommonPath.dart';
+import 'package:flutter_youtube_downloader/Utils/YoutubeDLCommand.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:process_run/shell.dart';
 import 'dart:io';
@@ -17,11 +18,7 @@ part 'VideoInfo.g.dart';
 
 // run this command after modify
 // flutter pub run build_runner build
-enum VideoType {
-  facebook,
-  youtube,
-  other
-}
+enum VideoType { facebook, youtube, other }
 
 extension VideoTypeEx on VideoType {
   String get cookieFile {
@@ -49,10 +46,13 @@ extension VideoTypeEx on VideoType {
 
     return VideoType.other;
   }
-
 }
 
-@JsonSerializable(fieldRename: FieldRename.snake, explicitToJson: true, includeIfNull: true, ignoreUnannotated: true)
+@JsonSerializable(
+    fieldRename: FieldRename.snake,
+    explicitToJson: true,
+    includeIfNull: true,
+    ignoreUnannotated: true)
 class VideoInfo {
   @JsonKey(name: 'webpage_url', defaultValue: '')
   String link;
@@ -72,8 +72,7 @@ class VideoInfo {
   bool isLoading = false;
 
   late VideoResolution selectedResolutions;
-  var shellLinesController = ShellLinesController();
-  late Shell shell = createShell(controller: shellLinesController);
+  late Shell downloadShell = customShell();
   var isConvertToMp4 = false;
   var isAudioOnly = false;
   var currentDownloadPID = '';
@@ -89,40 +88,53 @@ class VideoInfo {
 
     return VideoType.other;
   }
+
   //HH:mm:sss
   String get duration {
     final now = Duration(seconds: durationInSeconds.toInt());
     return _printDuration(now);
   }
+
   List<VideoFormat> get videoFormats {
-    final videoFormats = formats.where((element) => element.type == VideoFormatType.video).toList();
+    final videoFormats = formats
+        .where((element) => element.type == VideoFormatType.video)
+        .toList();
     // descending, best resolution on top
     videoFormats.sort((first, second) => second.height.compareTo(first.height));
     return videoFormats;
   }
+
   List<VideoFormat> get audioFormats {
-    final audioFormats = formats.where((element) => element.type == VideoFormatType.audio).toList();
+    final audioFormats = formats
+        .where((element) => element.type == VideoFormatType.audio)
+        .toList();
     return audioFormats;
   }
-  List<VideoResolution> get availableResolutions {
 
+  List<VideoResolution> get availableResolutions {
     final List<VideoResolution> videoFormatDescriptions;
 
     switch (type) {
       case VideoType.youtube:
         videoFormatDescriptions = videoFormats
-            .map((e) => VideoResolution(formatNote: e.formatNote, height: e.height))
-            .toSet().toList();
+            .map((e) =>
+                VideoResolution(formatNote: e.formatNote, height: e.height))
+            .toSet()
+            .toList();
         break;
       case VideoType.facebook:
         videoFormatDescriptions = videoFormats
-            .map((e) => VideoResolution(formatNote: '${e.height}p', height: e.height))
-            .toSet().toList();
+            .map((e) =>
+                VideoResolution(formatNote: '${e.height}p', height: e.height))
+            .toSet()
+            .toList();
         break;
       default:
         videoFormatDescriptions = videoFormats
-            .map((e) => VideoResolution(formatNote: e.formatNote, height: e.height))
-            .toSet().toList();
+            .map((e) =>
+                VideoResolution(formatNote: e.formatNote, height: e.height))
+            .toSet()
+            .toList();
         break;
     }
 
@@ -140,7 +152,12 @@ class VideoInfo {
     selectedResolutions = availableResolutions.first;
   }
 
-  factory VideoInfo.fromJson(Map<String, dynamic> json) => _$VideoInfoFromJson(json);
+  static Future<VideoInfo> fromLink(String link) async {
+    return await YoutubeDLCommand.getVideoInfoFrom(link: link);
+  }
+
+  factory VideoInfo.fromJson(Map<String, dynamic> json) =>
+      _$VideoInfoFromJson(json);
   Map<String, dynamic> toJson() => _$VideoInfoToJson(this);
 
   String _printDuration(Duration duration) {
@@ -149,15 +166,6 @@ class VideoInfo {
     String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
     String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
     return "$digitHours$twoDigitMinutes:$twoDigitSeconds";
-  }
-
-  Shell createShell({required ShellLinesController controller}) {
-    return customShell(controller: controller);
-  }
-
-  void initShell() {
-    shellLinesController = ShellLinesController();
-    shell = createShell(controller: shellLinesController);
   }
 
   void setStartState() {
@@ -177,20 +185,28 @@ class VideoInfo {
     if (Platform.isWindows) {
       await killYouTubeDLOnWindows();
     }
-    shell.kill(ProcessSignal.sigkill);
-    initShell();
+    downloadShell.kill(ProcessSignal.sigkill);
+    // restartDownloadShell();
+    downloadShell = customShell();
   }
 
   Future killYouTubeDLOnWindows() async {
     // find youtube-dl child process
     final killShell = Shell();
-    final cmd = 'wmic process where (\'ParentProcessId=$currentDownloadPID\') get Caption,ProcessId'.crossPlatformCommand;
+    final cmd =
+        'wmic process where (\'ParentProcessId=$currentDownloadPID\') get Caption,ProcessId'
+            .crossPlatformCommand;
     log(cmd);
     final result = await killShell.run(cmd).toResult(logError: true);
-    final outlines = result.value!.outLines.map((e) => e.trim()).where((element) => element.isNotEmpty).toList();
+    final outlines = result.value!.outLines
+        .map((e) => e.trim())
+        .where((element) => element.isNotEmpty)
+        .toList();
     print(outlines);
     // if not found return empty
-    final youtubeDLPidInfo = outlines.firstWhere((element) => element.contains('youtube-dl.exe'), orElse: () => '');
+    final youtubeDLPidInfo = outlines.firstWhere(
+        (element) => element.contains('youtube-dl.exe'),
+        orElse: () => '');
 
     if (youtubeDLPidInfo.isEmpty) {
       return;
@@ -208,47 +224,91 @@ class VideoInfo {
     await killShell.run(killCmd).toResult(logError: true);
   }
 
-  Future<List<ProcessResult>> download({required String videoOutput}) {
-    final forceAVC = Platform.isMacOS ? '[vcodec^=avc]' : '';
-    final video = '\'bestvideo[height=${selectedResolutions.height}]$forceAVC'
-        '[ext=$DEFAULT_VIDEO_EXTENSION]+'
-        'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION]'
-        '/bestvideo[height<=${selectedResolutions.height}]+bestaudio'
-        '/best\' ';
-    final format = isAudioOnly ? 'bestaudio[ext=$DEFAULT_AUDIO_EXTENSION] ' : video;
-    final recodeMp4 = (isConvertToMp4 && !isAudioOnly) ? '--recode mp4 ' : '';
-
-    final pidCmd = 'echo (\'DownloadPID \' + \$PID)';
-    final downloadCmd = '$youtubeDlPath '
-        '--no-warnings '
-        '--cookies ${type.cookieFile} '
-        '--ffmpeg-location \'$ffmpegPath\' '
-        '-f '
-        '$format'
-        '$recodeMp4'
-        '-o $videoOutput \'$link\'';
-    final String cmd;
-
-    if (Platform.isWindows) {
-      cmd = '$pidCmd;$downloadCmd';
-    } else {
-      cmd = '$downloadCmd';
+  Future downloadV2(
+      {required String videoOutput,
+      required void onEvent(VideoInfo event),
+      required onError(String msg)}) async {
+    setStartState();
+    isLoading = true;
+    try {
+      final controller = ShellLinesController();
+      downloadShell = customShell(controller: controller);
+      handleShellControllerStream(stream: controller.stream, onEvent: onEvent);
+      await YoutubeDLCommand.downloadVideo(
+          link: link,
+          resolution: selectedResolutions.height,
+          outputPath: videoOutput,
+          cookiePath: type.cookieFile,
+          isAudioOnly: isAudioOnly,
+          isRecodeMp4: isConvertToMp4 && !isAudioOnly,
+          controller: controller,
+          downloadShell: downloadShell);
+      setFinishDownloadState();
+      onEvent(this);
+    } on ShellException catch (e, trace) {
+      log(e.toErrorString);
+      log(trace.toString());
+      setStartState();
+      onEvent(this);
+      onError('Error on downloading video:\n'
+          '${e.toErrorString}');
+    } catch (e, trace) {
+      log(e.toString());
+      log(trace.toString());
+      setStartState();
+      onEvent(this);
+      onError('Error on downloading video:\n'
+          '${e.toString()}');
     }
-
-    log(cmd.crossPlatformCommand);
-    return shell.run(cmd.crossPlatformCommand);
   }
 
+  void handleShellControllerStream(
+      {required Stream<String> stream,
+      required void onEvent(VideoInfo event)}) async {
+    await for (final event in stream) {
+      log(event);
+      if (event.contains('DownloadPID')) {
+        currentDownloadPID = event.split(' ').valueAt(index: 1) ?? '';
+        log('got the pid: $currentDownloadPID ');
+      }
+
+      if (processingState.init(value: event) != VideoProcessingState.unknown) {
+        processingState = processingState.init(value: event);
+        onEvent(this);
+      }
+
+      // [download] <percent>% of <size>MiB at <currentTime>
+      // [download] <percent>% of <size>MiB in <currentTime>
+      // [download] <percent>% of <size>MiB
+      if (event.contains('[download]') &&
+          event.contains('of') &&
+          event.contains('%')) {
+        String percent;
+        try {
+          percent = event
+              .split(' ')
+              .firstWhere((element) => element.contains('%'))
+              .split('%')
+              .first;
+        } catch (e) {
+          throw Exception(
+              'Cannot extract download percent from event:\n$event');
+        }
+
+        // log(percent);
+        downloadPercentage = double.parse(percent);
+        if (double.parse(percent) == 100) {}
+        onEvent(this);
+      }
+    }
+  }
 }
 
 class VideoResolution {
   String formatNote;
   int height;
 
-  VideoResolution({
-    required this.formatNote,
-    required this.height
-  });
+  VideoResolution({required this.formatNote, required this.height});
 
   @override
   String toString() {
@@ -264,13 +324,11 @@ class VideoResolution {
     }
 
     return (height == other.height);
-
   }
 
   @override
   // TODO: implement hashCode
   int get hashCode => height;
-
 }
 
 enum VideoProcessingState {
@@ -286,10 +344,10 @@ enum VideoProcessingState {
 }
 
 extension VideoProcessingStateEx on VideoProcessingState {
-
   // can init depend on old state
-  VideoProcessingState init({required String value}){
-    if (value.contains('Destination:') && (!value.contains('Converting video'))) {
+  VideoProcessingState init({required String value}) {
+    if (value.contains('Destination:') &&
+        (!value.contains('Converting video'))) {
       // if state is downloading video then the next state is download audio
       if (this == VideoProcessingState.downloadingVideo) {
         return VideoProcessingState.downloadAudio;
@@ -297,7 +355,7 @@ extension VideoProcessingStateEx on VideoProcessingState {
         return VideoProcessingState.downloadingVideo;
       }
     }
-    
+
     if (value.contains('Merging formats into')) {
       return VideoProcessingState.mergingOutput;
     }
@@ -315,9 +373,8 @@ extension VideoProcessingStateEx on VideoProcessingState {
     }
 
     return VideoProcessingState.unknown;
-
   }
-  
+
   String get description {
     switch (this) {
       case VideoProcessingState.start:

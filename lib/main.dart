@@ -75,6 +75,10 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    //_inputController.text = 'https://www.facebook.com/watch?v=889175572515263';
+    //_inputController.text = 'https://www.youtube.com/watch?v=Xd5ESRqpz3E';
+    // long video
+    _inputController.text = 'https://www.youtube.com/watch?v=Z4XDMR4NWUg';
 
     Future.delayed(const Duration(milliseconds: 1000), () {
       checkYoutubeDL();
@@ -82,11 +86,9 @@ class _MyHomePageState extends State<MyHomePage> {
     });
     getVideoLocation();
     checkVersion();
-
   }
 
   void checkVersion() async {
-
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
     final currentVersion = packageInfo.versionNumber;
 
@@ -94,7 +96,9 @@ class _MyHomePageState extends State<MyHomePage> {
       version = currentVersion.toString();
     });
 
-    final result = await NetworkManager.shared.github.getReleaseDataList().toResult(logError: true);
+    final result = await NetworkManager.shared.github
+        .getReleaseDataList()
+        .toResult(logError: true);
     if (result.error != null) {
       showSnackBar("Error in checking new version: ${result.error.toString()}");
       return;
@@ -107,7 +111,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (currentVersion.compareTo(githubVersion) < 0) {
       setState(() {
-        versionStatusTitle = "There is a new version available, you can download it on the github link above";
+        versionStatusTitle =
+            "There is a new version available, you can download it on the github link above";
       });
     }
   }
@@ -118,105 +123,37 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
-  void downloadV2() async {
+  void downloadAllVideo() async {
     for (var item in videoList) {
-      downloadVideoInfo(item);
+      downloadSingleVideo(item);
     }
   }
 
-  void downloadVideoInfo(VideoInfo item) async {
-    setState(() {
-      item.setStartState();
-      item.isLoading = true;
-    });
+  void downloadSingleVideo(VideoInfo item) async {
+    downloadVideoInfoV2(item);
+  }
 
-    item.initShell();
-    final listener = item.shellLinesController.stream.listen((event) {
-      log(event);
-
-      if (event.contains('DownloadPID')) {
-        item.currentDownloadPID = event.split(' ').valueAt(index: 1) ?? '';
-        log('got the pid: ${item.currentDownloadPID} ');
-      }
-
-//      if (event.contains('has already been downloaded and merged')) {
-//        setState(() {
-//          item.setFinishDownloadState();
-//        });
-//      }
-
-      if (item.processingState.init(value: event) !=
-          VideoProcessingState.unknown) {
-        setState(() {
-          item.processingState = item.processingState.init(value: event);
-        });
-      }
-
-      // [download] <percent>% of <size>MiB at <currentTime>
-      // [download] <percent>% of <size>MiB in <currentTime>
-      // [download] <percent>% of <size>MiB
-      if (event.contains('[download]') &&
-          event.contains('of') &&
-          event.contains('%')) {
-        String? percent;
-        try {
-          percent = event
-              .split(' ')
-              .firstWhere((element) => element.contains('%'))
-              .split('%')
-              .first;
-        } catch (e) {}
-
-        // log(percent);
-        if (percent != null) {
-          final percentNotNull = percent;
-          setState(() {
-            item.downloadPercentage = double.parse(percentNotNull);
-            if (double.parse(percentNotNull) == 100) {
-//              item.isLoading = false;
-            }
-          });
-        }
-      }
-    });
-
-    final result =
-        await item.download(videoOutput: videoOutput).toResult(logError: true);
-    listener.cancel();
-    item.shellLinesController.close();
-
-    if (result.isError(onError: (error, stackTrace) {
-      final title = "error on downloading video";
-      if (error != "Killed by framework") {
-        showSnackBar(title + '\n' + error);
-      }
-
-      setState(() {
-        item.setStartState();
-      });
-    })) {
-      return;
-    }
-
-    setState(() {
-      item.setFinishDownloadState();
-    });
+  void downloadVideoInfoV2(VideoInfo item) async {
+    await item.downloadV2(
+        videoOutput: videoOutput,
+        onEvent: (event) => this.setState(() {}),
+        onError: (msg) => showSnackBar(msg));
   }
 
   void showSnackBar(String text) {
     final snackBar = SnackBar(
-        content: Wrap(
-      direction: Axis.vertical,
-      spacing: 8,
-      children: [
-        Text(text),
-        OutlinedButton(
+        content:
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(text),
+      Align(
+        alignment: Alignment.centerRight,
+        child: OutlinedButton(
             child: Text('Copy Error'),
             onPressed: () {
               Clipboard.setData(ClipboardData(text: text));
-            })
-      ],
-    ));
+            }),
+      )
+    ]));
     ScaffoldMessenger.of(context).showSnackBar(snackBar);
   }
 
@@ -233,30 +170,31 @@ class _MyHomePageState extends State<MyHomePage> {
     });
 
     final link = _inputController.text;
-
-    final videoInfo = await YoutubeDLCommand()
-        .getVideoInfoFrom(link: link)
-        .onError((error, stackTrace) {
-          setState(() {
-            isLoading = false;
-          });
-          log(error.toString());
-          log(stackTrace.toString());
-          showSnackBar('Error on getting video information: \n ${error.toString()} ${stackTrace.toString()}');
-        });
-
-    setState(() {
-      isLoading = false;
-    });
-
-    if (videoInfo == null) {
-      return;
+    try {
+      final videoInfo = await VideoInfo.fromLink(link);
+      setState(() {
+        isLoading = false;
+      });
+      setState(() {
+        videoList.add(videoInfo);
+      });
+    } on ShellException catch (e, trace) {
+      setState(() {
+        isLoading = false;
+      });
+      log(e.toErrorString);
+      log(trace.toString());
+      showSnackBar(
+          'Error on getting video information: \n${e.toErrorString} ${trace.toString()}');
+    } catch (e, trace) {
+      setState(() {
+        isLoading = false;
+      });
+      log(e.toString());
+      log(trace.toString());
+      showSnackBar(
+          'Error on getting video information: \n${e.toString()} ${trace.toString()}');
     }
-
-    setState(() {
-      videoList.add(videoInfo);
-    });
-
   }
 
   void removeFromQueue(int index) {
@@ -270,20 +208,19 @@ class _MyHomePageState extends State<MyHomePage> {
       youtubeVersion = 'checking version';
     });
 
-    final result = await YoutubeDLCommand()
-        .getVersion()
-        .onError((error, stackTrace) {
-          final shellError = error as ShellException;
-          log(shellError.toErrorString);
-          log(StackTrace.current.toString());
+    final result =
+        await YoutubeDLCommand.getVersion().onError((error, stackTrace) {
+      final shellError = error as ShellException;
+      log(shellError.toErrorString);
+      log(StackTrace.current.toString());
 
-          final title = "can't check the version of youtube-dl";
-          setState(() {
-            youtubeVersion = title;
-          });
+      final title = "can't check the version of youtube-dl";
+      setState(() {
+        youtubeVersion = title;
+      });
 
-          showSnackBar(title + '\n' + (shellError.toErrorString));
-        });
+      showSnackBar(title + '\n' + (shellError.toErrorString));
+    });
 
     if (result == null) {
       return;
@@ -299,9 +236,8 @@ class _MyHomePageState extends State<MyHomePage> {
       ffmpegVersion = "can't check the version of ffmpeg";
     });
 
-    final result = await FFmpegCommand()
-        .getVersion()
-        .onError((error, stackTrace) {
+    final result =
+        await FFmpegCommand.getVersion().onError((error, stackTrace) {
       final shellError = error as ShellException;
       log(shellError.toErrorString);
       log(StackTrace.current.toString());
@@ -311,7 +247,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ffmpegVersion = title;
       });
 
-      showSnackBar(title + '\n' + (shellError.toErrorString) );
+      showSnackBar(title + '\n' + (shellError.toErrorString));
     });
 
     if (result == null) {
@@ -321,7 +257,6 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       ffmpegVersion = result;
     });
-
   }
 
   void getVideoLocation() async {
@@ -329,10 +264,11 @@ class _MyHomePageState extends State<MyHomePage> {
       videoLocation = 'getting location';
     });
 
-    final desktopCommand = DesktopCommand();
-    final result = await desktopCommand
-        .getCurrentPath().onError((error, stackTrace) => null)
-        .catchError((error) { showSnackBar(videoLocation + '\n' + error); });
+    final result = await DesktopCommand.getCurrentPath()
+        .onError((error, stackTrace) => null)
+        .catchError((error) {
+      showSnackBar(videoLocation + '\n' + error);
+    });
 
     if (result == null) {
       return;
@@ -356,34 +292,30 @@ class _MyHomePageState extends State<MyHomePage> {
         videoLocation = localPath + '/$VIDEO_FOLDER_NAME';
       });
 
-      await desktopCommand
-          .createDirectory(videoLocation)
+      await DesktopCommand.createDirectory(videoLocation)
           .toResult(logError: true);
       return;
     }
 
     if (Platform.isWindows) {
       setState(() {
-        videoLocation =
-            value + '\\$VIDEO_FOLDER_NAME';
+        videoLocation = value + '\\$VIDEO_FOLDER_NAME';
         return;
       });
 
-      await desktopCommand
-          .createDirectory(videoLocation)
+      await DesktopCommand.createDirectory(videoLocation)
           .toResult(logError: true);
       return;
     }
   }
 
   void openVideoLocation() async {
-    DesktopCommand()
-        .openFolder(videoLocation)
+    DesktopCommand.openFolder(videoLocation)
         .catchError((error) => showSnackBar(videoLocation + '\n' + error));
   }
 
   void openLink(String link) {
-    DesktopCommand().openLink(link);
+    DesktopCommand.openLink(link);
   }
 
   Future<String> get documentsPath async {
@@ -506,7 +438,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       },
                       onDownloadButtonTap: () => setState(() {
                         if (!item.isLoading) {
-                          downloadVideoInfo(item);
+                          downloadSingleVideo(item);
                         } else {
                           item.stopDownload();
                         }
@@ -519,7 +451,7 @@ class _MyHomePageState extends State<MyHomePage> {
               height: 44,
               child: ElevatedButton(
                 child: Text('Download All Videos'),
-                onPressed: downloadV2,
+                onPressed: downloadAllVideo,
               ),
             ),
             SizedBox(height: 16),
@@ -539,12 +471,11 @@ class _MyHomePageState extends State<MyHomePage> {
               ],
             ),
             versionStatusTitle.isNotEmpty
-            ? Text(versionStatusTitle) : SizedBox()
+                ? Text(versionStatusTitle)
+                : SizedBox()
           ],
         ),
       ),
     );
   }
 }
-
-
