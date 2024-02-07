@@ -1,10 +1,10 @@
 import 'dart:convert';
-import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter_youtube_downloader/extension/process_run_ex.dart';
 import 'package:flutter_youtube_downloader/extension/string_ex.dart';
 import 'package:flutter_youtube_downloader/global_variables.dart';
+import 'package:flutter_youtube_downloader/main.dart';
 import 'package:flutter_youtube_downloader/model/video_info.dart';
 import 'package:flutter_youtube_downloader/utils//common_path.dart';
 import 'package:flutter_youtube_downloader/utils/desktop_command.dart';
@@ -37,12 +37,12 @@ class YoutubeDLCommand extends DesktopCommand {
     }
     final json = jsonDecode(result.outText);
     if (!(json is Map<String, dynamic>)) {
-      log('value.outText is not Map<String, dynamic> ${result.outText}');
+      logger.e('value.outText is not Map<String, dynamic> ${result.outText}');
       throw Exception(
           'value.outText is not Map<String, dynamic> ${result.outText}');
     }
     if (json.isEmpty) {
-      log('value.outText json is empty ${result.outText}');
+      logger.e('value.outText json is empty ${result.outText}');
       throw Exception(
           'value.outText is not Map<String, dynamic> ${result.outText}');
     }
@@ -51,12 +51,12 @@ class YoutubeDLCommand extends DesktopCommand {
         (json['entries'] != null && json['entries'] is List<dynamic>)) {
       final entries = json['entries'] as List<dynamic>;
       videoInfo = VideoInfo.fromJson(entries.first as Map<String, dynamic>);
-      //log((entries.first as Map<String, dynamic>).toPrettyString);
+      //logger.d((entries.first as Map<String, dynamic>).toPrettyString);
     } else {
       videoInfo = VideoInfo.fromJson(json);
-      //log(json.toPrettyString);
+      //logger.d(json.toPrettyString);
     }
-    //log(videoInfo.availableResolutions.toString());
+    //logger.d(videoInfo.availableResolutions.toString());
     return videoInfo;
   }
 
@@ -108,7 +108,7 @@ class YoutubeDLCommand extends DesktopCommand {
       cmd = '$downloadCmd';
     }
 
-    log(cmd.crossPlatformCommand);
+    logger.d(cmd.crossPlatformCommand);
     return shell
         .run(cmd.crossPlatformCommand)
         .whenComplete(() => controller.close());

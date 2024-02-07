@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-
-import '../model/video_info.dart';
+import 'package:flutter_youtube_downloader/main.dart';
+import 'package:flutter_youtube_downloader/model/video_info.dart';
 
 class VideoInfoCell extends StatelessWidget {
   final VideoInfo item;
@@ -54,7 +54,7 @@ class VideoInfoCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print(item.processingState);
+    logger.d(item.processingState);
     return Column(
       children: [
         ListTile(

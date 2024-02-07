@@ -1,6 +1,6 @@
-import 'dart:developer';
 import 'dart:io';
 
+import 'package:flutter_youtube_downloader/main.dart';
 import 'package:flutter_youtube_downloader/model/future_result.dart';
 import 'package:process_run/shell.dart';
 
@@ -55,13 +55,12 @@ extension FutureProcessResult on FutureResult<List<ProcessResult>> {
   bool isError({required Function(String, StackTrace?) onError}) {
     if (this.value == null) {
       if (this.error != null) {
-        log((this.error as ShellException).message);
         final error = (this.error as ShellException).toError ??
             (this.error as ShellException).message;
 
         onError(error, stackTrace);
-        log((this.error as ShellException).toError.toString());
-        log(StackTrace.current.toString());
+        logger.e((this.error as ShellException).toError.toString(),
+            stackTrace: stackTrace);
         return true;
       }
     }
@@ -70,8 +69,7 @@ extension FutureProcessResult on FutureResult<List<ProcessResult>> {
     if (value.errText.isNotEmpty) {
       final error = this.value!.errText;
       onError(error, stackTrace);
-      log(error);
-      log(StackTrace.current.toString());
+      logger.e(error, stackTrace: stackTrace);
       return true;
     }
 
@@ -92,8 +90,7 @@ extension ShellEx on Shell {
 
     if (result.errText.isNotEmpty) {
       final error = result.errText;
-      log(error);
-      log(StackTrace.current.toString());
+      logger.e(error, stackTrace: StackTrace.current);
       throw error;
     }
 

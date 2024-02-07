@@ -2,6 +2,7 @@
 import 'dart:developer';
 
 import 'package:flutter_youtube_downloader/extension/process_run_ex.dart';
+import 'package:flutter_youtube_downloader/main.dart';
 import 'package:flutter_youtube_downloader/model/video_format.dart';
 import 'package:flutter_youtube_downloader/utils/youtubedl_command.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -194,13 +195,13 @@ class VideoInfo {
     final cmd =
         'wmic process where (\'ParentProcessId=$currentDownloadPID\') get Caption,ProcessId'
             .crossPlatformCommand;
-    log(cmd);
+    logger.d(cmd);
     final result = await killShell.run(cmd).toResult(logError: true);
     final outlines = result.value!.outLines
         .map((e) => e.trim())
         .where((element) => element.isNotEmpty)
         .toList();
-    print(outlines);
+    logger.d(outlines);
     // if not found return empty
     final youtubeDLPidInfo = outlines.firstWhere(
         (element) => element.contains('youtube-dl.exe'),
@@ -216,9 +217,9 @@ class VideoInfo {
         .where((element) => element.isNotEmpty)
         .toList()
         .valueAt(index: 1);
-    log('youtube-dl pid $youtubeDlPID');
+    logger.d('youtube-dl pid $youtubeDlPID');
     final killCmd = 'taskkill /f /pid $youtubeDlPID'.crossPlatformCommand;
-    log(killCmd);
+    logger.d(killCmd);
     await killShell.run(killCmd).toResult(logError: true);
   }
 
@@ -245,15 +246,13 @@ class VideoInfo {
       setFinishDownloadState();
       onEvent(this);
     } on ShellException catch (e, trace) {
-      log(e.toErrorString);
-      log(trace.toString());
+      logger.e(e.toErrorString, stackTrace: trace);
       setStartState();
       onEvent(this);
       onError('Error on downloading video:\n'
           '${e.toErrorString}');
     } catch (e, trace) {
-      log(e.toString());
-      log(trace.toString());
+      logger.e(e.toString(), stackTrace: trace);
       setStartState();
       onEvent(this);
       onError('Error on downloading video:\n'
@@ -265,10 +264,10 @@ class VideoInfo {
       {required Stream<String> stream,
       required void onEvent(VideoInfo event)}) async {
     await for (final event in stream) {
-      log(event);
+      logger.d(event);
       if (event.contains('DownloadPID')) {
         currentDownloadPID = event.split(' ').valueAt(index: 1) ?? '';
-        log('got the pid: $currentDownloadPID ');
+        logger.d('got the pid: $currentDownloadPID ');
       }
 
       if (processingState.init(value: event) != VideoProcessingState.unknown) {
@@ -289,12 +288,13 @@ class VideoInfo {
               .firstWhere((element) => element.contains('%'))
               .split('%')
               .first;
-        } catch (e) {
+        } catch (e, trace) {
+          logger.e('Cannot extract download percent from event:\n$event', stackTrace: trace);
           throw Exception(
               'Cannot extract download percent from event:\n$event');
         }
 
-        // log(percent);
+        // logger.e(percent);
         downloadPercentage = double.parse(percent);
         if (double.parse(percent) == 100) {}
         onEvent(this);

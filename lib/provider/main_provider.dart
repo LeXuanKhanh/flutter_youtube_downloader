@@ -73,9 +73,8 @@ extension InitialCheck on MainProvider {
                 "Error in checking new version: ${err.toString()}"));
     final githubVersion = result.value!.first.versionNumber;
 
-    print(packageInfo.version);
-    print(githubVersion);
-
+    logger.d(
+        'current version: ${packageInfo.version}\ngithub version: $githubVersion');
     if (currentVersion.compareTo(githubVersion) < 0) {
       versionStatusTitle =
           "There is a new version available, you can download it on the github link above";
