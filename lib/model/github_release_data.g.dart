@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'GithubReleaseData.dart';
+part of 'github_release_data.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator

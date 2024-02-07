@@ -1,8 +1,8 @@
-import 'package:process_run/shell.dart';
 import 'dart:io';
 
-import 'package:flutter_youtube_downloader/Extension/ProcessRunEx.dart';
-import 'package:flutter_youtube_downloader/Extension/StringEx.dart';
+import 'package:flutter_youtube_downloader/extension/process_run_ex.dart';
+import 'package:flutter_youtube_downloader/extension/string_ex.dart';
+import 'package:process_run/shell.dart';
 
 class DesktopCommand {
   static Future openFolder(String folderPath) async {
@@ -25,14 +25,13 @@ class DesktopCommand {
     } else {
       cmdOpenFolder = 'open';
     }
-    
+
     return shell.run('$cmdOpenFolder $link');
   }
 
   static Future createDirectory(String directoryName) async {
     Shell shell = customShell();
-    return shell
-        .customRun('mkdir -p $directoryName'.crossPlatformCommand);
+    return shell.customRun('mkdir -p $directoryName'.crossPlatformCommand);
   }
 
   static Future<String?> getCurrentPath() async {
@@ -45,5 +44,4 @@ class DesktopCommand {
       return value?.outText;
     });
   }
-
 }

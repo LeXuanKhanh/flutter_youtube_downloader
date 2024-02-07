@@ -1,6 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 
-part 'VideoFormat.g.dart';
+part 'video_format.g.dart';
 
 /*
     // audio

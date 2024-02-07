@@ -38,9 +38,10 @@ dependencies:
   json_serializable: ^6.7.1
   dio: ^5.4.0
   retrofit: any
-  logger: any
+  logger: ^2.0.2+1
   pretty_dio_logger: ^1.1.1
   package_info_plus: ^4.2.0
+  provider: ^6.1.1
 
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../Model/VideoInfo.dart';
+
+import '../model/video_info.dart';
 
 class VideoInfoCell extends StatelessWidget {
   final VideoInfo item;
@@ -66,29 +67,25 @@ class VideoInfoCell extends StatelessWidget {
                 )
               : SizedBox(width: 100, height: 100),
           title:
-              Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(item.title),
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        DropdownButton<VideoResolution>(
-                          value: item.selectedResolutions,
-                          items: dropDownItems,
-                          onChanged: (value) => onSelectResolutionDropDown(value!),
-                        ),
-                        IconButton(
-                            color: Colors.black54,
-                            icon: item.isLoading
-                                ? Icon(Icons.file_download_off)
-                                : Icon(Icons.download),
-                            onPressed: this.onDownloadButtonTap),
-                      ],
-                    ),
-
-                  ]
-              ),
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text(item.title),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                DropdownButton<VideoResolution>(
+                  value: item.selectedResolutions,
+                  items: dropDownItems,
+                  onChanged: (value) => onSelectResolutionDropDown(value!),
+                ),
+                IconButton(
+                    color: Colors.black54,
+                    icon: item.isLoading
+                        ? Icon(Icons.file_download_off)
+                        : Icon(Icons.download),
+                    onPressed: this.onDownloadButtonTap),
+              ],
+            ),
+          ]),
           subtitle: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -98,14 +95,18 @@ class VideoInfoCell extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Checkbox(value: item.isAudioOnly, onChanged: onChangedIsAudioOnlyCheckBox),
+                      Checkbox(
+                          value: item.isAudioOnly,
+                          onChanged: onChangedIsAudioOnlyCheckBox),
                       Text('audio only'),
                     ],
                   ),
                   SizedBox(),
                   Row(
                     children: [
-                      Checkbox(value: item.isConvertToMp4, onChanged: onChangedIsConvertToMp4CheckBox),
+                      Checkbox(
+                          value: item.isConvertToMp4,
+                          onChanged: onChangedIsConvertToMp4CheckBox),
                       Text('convert to mp4'),
                     ],
                   ),

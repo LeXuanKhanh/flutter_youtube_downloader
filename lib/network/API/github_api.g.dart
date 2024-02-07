@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'GithubAPI.dart';
+part of 'github_api.dart';
 
 // **************************************************************************
 // RetrofitGenerator

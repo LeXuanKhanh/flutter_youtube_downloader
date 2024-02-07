@@ -1,8 +1,8 @@
 import 'dart:developer';
 import 'dart:io';
-import 'package:process_run/shell.dart';
 
-import 'package:flutter_youtube_downloader/Model/FutureResult.dart';
+import 'package:flutter_youtube_downloader/model/future_result.dart';
+import 'package:process_run/shell.dart';
 
 Shell customShell({ShellLinesController? controller}) {
   Shell shell = Shell();

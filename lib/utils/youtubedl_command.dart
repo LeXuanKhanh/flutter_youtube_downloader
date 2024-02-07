@@ -1,15 +1,14 @@
 import 'dart:convert';
 import 'dart:developer';
 import 'dart:io';
-import 'package:flutter_youtube_downloader/Extension/MapEx.dart';
-import 'package:flutter_youtube_downloader/GlobalVariables.dart';
-import 'package:flutter_youtube_downloader/Utils/CommonPath.dart';
-import 'package:process_run/shell.dart';
 
-import 'package:flutter_youtube_downloader/Utils/DesktopCommand.dart';
-import 'package:flutter_youtube_downloader/Extension/StringEx.dart';
-import 'package:flutter_youtube_downloader/Model/VideoInfo.dart';
-import 'package:flutter_youtube_downloader/Extension/ProcessRunEx.dart';
+import 'package:flutter_youtube_downloader/extension/process_run_ex.dart';
+import 'package:flutter_youtube_downloader/extension/string_ex.dart';
+import 'package:flutter_youtube_downloader/global_variables.dart';
+import 'package:flutter_youtube_downloader/model/video_info.dart';
+import 'package:flutter_youtube_downloader/utils//common_path.dart';
+import 'package:flutter_youtube_downloader/utils/desktop_command.dart';
+import 'package:process_run/shell.dart';
 
 class YoutubeDLCommand extends DesktopCommand {
   static final defaultVideoExt = DEFAULT_VIDEO_EXTENSION;
@@ -110,7 +109,8 @@ class YoutubeDLCommand extends DesktopCommand {
     }
 
     log(cmd.crossPlatformCommand);
-    return shell.run(cmd.crossPlatformCommand)
+    return shell
+        .run(cmd.crossPlatformCommand)
         .whenComplete(() => controller.close());
   }
 }

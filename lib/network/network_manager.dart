@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_youtube_downloader/Network/API/GithubAPI.dart';
-import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'package:flutter_youtube_downloader/network/API/github_api.dart';
 
 class NetworkManager {
   static NetworkManager? _instance;

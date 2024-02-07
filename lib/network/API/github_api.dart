@@ -1,9 +1,8 @@
-
 import 'package:dio/dio.dart';
-import 'package:flutter_youtube_downloader/Model/GithubReleaseData.dart';
+import 'package:flutter_youtube_downloader/model/github_release_data.dart';
 import 'package:retrofit/retrofit.dart';
 
-part 'GithubAPI.g.dart';
+part 'github_api.g.dart';
 
 @RestApi(baseUrl: "https://api.github.com/")
 abstract class GithubAPI {

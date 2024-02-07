@@ -1,20 +1,18 @@
 // get only info which to display in order to reduce latency
 import 'dart:developer';
 
-import 'package:flutter_youtube_downloader/Extension/ProcessRunEx.dart';
-import 'package:flutter_youtube_downloader/Model/VideoFormat.dart';
-import 'package:flutter_youtube_downloader/Utils/CommonPath.dart';
-import 'package:flutter_youtube_downloader/Utils/YoutubeDLCommand.dart';
+import 'package:flutter_youtube_downloader/extension/process_run_ex.dart';
+import 'package:flutter_youtube_downloader/model/video_format.dart';
+import 'package:flutter_youtube_downloader/utils/youtubedl_command.dart';
 import 'package:json_annotation/json_annotation.dart';
 import 'package:process_run/shell.dart';
 import 'dart:io';
 
-import '../GlobalVariables.dart';
-import '../Extension/StringEx.dart';
-import '../Extension/FutureEx.dart';
-import '../Extension/ListEx.dart';
+import '../extension//string_ex.dart';
+import '../extension/future_ex.dart';
+import '../extension/list_ex.dart';
 
-part 'VideoInfo.g.dart';
+part 'video_info.g.dart';
 
 // run this command after modify
 // flutter pub run build_runner build
@@ -153,7 +151,7 @@ class VideoInfo {
   }
 
   static Future<VideoInfo> fromLink(String link) async {
-    return await YoutubeDLCommand.getVideoInfoFrom(link: link);
+    return YoutubeDLCommand.getVideoInfoFrom(link: link);
   }
 
   factory VideoInfo.fromJson(Map<String, dynamic> json) =>
@@ -230,6 +228,7 @@ class VideoInfo {
       required onError(String msg)}) async {
     setStartState();
     isLoading = true;
+    onEvent(this);
     try {
       final controller = ShellLinesController();
       downloadShell = customShell(controller: controller);

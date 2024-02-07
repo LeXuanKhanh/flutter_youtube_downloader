@@ -1,19 +1,25 @@
 import 'package:json_annotation/json_annotation.dart';
-import '../Extension/ListEx.dart';
 
-part 'GithubReleaseData.g.dart';
+import '../extension/list_ex.dart';
 
-@JsonSerializable(fieldRename: FieldRename.snake, explicitToJson: true, includeIfNull: true, ignoreUnannotated: true)
+part 'github_release_data.g.dart';
+
+@JsonSerializable(
+    fieldRename: FieldRename.snake,
+    explicitToJson: true,
+    includeIfNull: true,
+    ignoreUnannotated: true)
 class GithubReleaseData {
   @JsonKey(defaultValue: '')
   String tagName;
+
   VersionNumber get versionNumber => VersionNumber.fromString(string: tagName);
 
-  GithubReleaseData({
-    required this.tagName
-  });
+  GithubReleaseData({required this.tagName});
 
-  factory GithubReleaseData.fromJson(Map<String, dynamic> json) => _$GithubReleaseDataFromJson(json);
+  factory GithubReleaseData.fromJson(Map<String, dynamic> json) =>
+      _$GithubReleaseDataFromJson(json);
+
   Map<String, dynamic> toJson() => _$GithubReleaseDataToJson(this);
 }
 
@@ -23,17 +29,18 @@ class VersionNumber implements Comparable<VersionNumber> {
   String patch;
 
   int get majorNumber => int.tryParse(major) ?? 0;
+
   int get minorNumber => int.tryParse(minor) ?? 0;
+
   int get patchNumber => int.tryParse(patch) ?? 0;
+
   String toString() => '$major.$minor.$patch';
 
-  VersionNumber({
-    required this.major,
-    required this.minor,
-    required this.patch
-  });
+  VersionNumber(
+      {required this.major, required this.minor, required this.patch});
 
-  factory VersionNumber.fromString({required String string}) => _$VersionFromString(string: string);
+  factory VersionNumber.fromString({required String string}) =>
+      _$VersionFromString(string: string);
 
   @override
   bool operator ==(Object other) {
@@ -42,14 +49,14 @@ class VersionNumber implements Comparable<VersionNumber> {
       return false;
     }
 
-    return (majorNumber == other.majorNumber) && (minorNumber == other.minorNumber) && (patchNumber == other.patchNumber);
-
+    return (majorNumber == other.majorNumber) &&
+        (minorNumber == other.minorNumber) &&
+        (patchNumber == other.patchNumber);
   }
 
   @override
   // TODO: implement hashCode
-  int get hashCode => (majorNumber*10000) + (minorNumber*100) + patchNumber;
-
+  int get hashCode => (majorNumber * 10000) + (minorNumber * 100) + patchNumber;
 
   // > 0: current > other
   // = 0: current = other
@@ -75,7 +82,6 @@ class VersionNumber implements Comparable<VersionNumber> {
 
     return 0;
   }
-
 }
 
 VersionNumber _$VersionFromString({required String string}) {
