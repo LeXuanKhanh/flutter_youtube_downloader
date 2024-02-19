@@ -30,7 +30,7 @@ class _MainScreenState extends State<MainScreen> {
     //_inputController.text = 'https://www.facebook.com/watch?v=889175572515263';
     //_inputController.text = 'https://www.youtube.com/watch?v=Xd5ESRqpz3E';
     // long video
-    _inputController.text = 'https://www.youtube.com/watch?v=Z4XDMR4NWUg';
+    //_inputController.text = 'https://www.youtube.com/watch?v=Z4XDMR4NWUg';
 
     Future.delayed(const Duration(milliseconds: 1000), () {
       read.checkYoutubeDL();
